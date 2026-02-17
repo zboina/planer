@@ -1,0 +1,11 @@
+  {
+      "name": "@planer/planer-bundle",
+      "symfony": {
+          "controllers": {
+              "grafik": {
+                  "main": "assets/controllers/grafik_controller.js",
+                  "fetch": "eager"
+              }
+          }
+      }
+  }
