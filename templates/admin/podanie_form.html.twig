@@ -1,7 +1,7 @@
 {% extends '@Planer/admin/_layout.html.twig' %}
 
 {% block panel_title %}{{ szablonLabel|default('Podanie') }}{% endblock %}
-{% block panel_heading %}{{ szablonLabel|default('Podanie') }} — {{ user.fullName }}{% endblock %}
+{% block panel_heading %}{{ szablonLabel|default('Podanie') }} — {{ planer_name(user) }}{% endblock %}
 
 {% block panel_content %}
 <div class="card">
@@ -50,7 +50,7 @@
                     <select class="form-select" id="zastepca" name="zastepca" required>
                         <option value="">— wybierz —</option>
                         {% for w in wspolpracownicy|default([]) %}
-                            <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+                            <option value="{{ planer_name(w) }}">{{ planer_name(w) }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -94,7 +94,7 @@
                         <select class="form-select" id="zastepca" name="zastepca" required>
                             <option value="">— wybierz —</option>
                             {% for w in wspolpracownicy %}
-                                <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+                                <option value="{{ planer_name(w) }}">{{ planer_name(w) }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -111,8 +111,8 @@
             {% endif %}
             <div class="mb-3 text-secondary">
                 <small>
-                    Pracownik: <strong>{{ user.fullName }}</strong><br>
-                    Adres: <strong>{{ user.adres ?: '(nie podano — uzupełnij w edycji użytkownika)' }}</strong><br>
+                    Pracownik: <strong>{{ planer_name(user) }}</strong><br>
+                    Adres: <strong>{{ planer_adres(user) ?: '(nie podano — uzupełnij w edycji użytkownika)' }}</strong><br>
                     {% if dept %}Departament: <strong>{{ dept.nazwa }}</strong>{% endif %}
                 </small>
             </div>

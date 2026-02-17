@@ -20,7 +20,7 @@ class GrafikWpis
 
     #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private PlanerUserInterface $user;
+    private object $user;
 
     #[ORM\ManyToOne(targetEntity: Departament::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -38,7 +38,7 @@ class GrafikWpis
 
     #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class)]
     #[ORM\JoinColumn(nullable: false)]
-    private PlanerUserInterface $createdBy;
+    private object $createdBy;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -63,12 +63,12 @@ class GrafikWpis
         return $this->id;
     }
 
-    public function getUser(): PlanerUserInterface
+    public function getUser(): object
     {
         return $this->user;
     }
 
-    public function setUser(PlanerUserInterface $user): static
+    public function setUser(object $user): static
     {
         $this->user = $user;
         return $this;
@@ -118,12 +118,12 @@ class GrafikWpis
         return $this;
     }
 
-    public function getCreatedBy(): PlanerUserInterface
+    public function getCreatedBy(): object
     {
         return $this->createdBy;
     }
 
-    public function setCreatedBy(PlanerUserInterface $createdBy): static
+    public function setCreatedBy(object $createdBy): static
     {
         $this->createdBy = $createdBy;
         return $this;

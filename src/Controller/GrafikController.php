@@ -5,7 +5,6 @@ namespace Planer\PlanerBundle\Controller;
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\GrafikWpis;
 use Planer\PlanerBundle\Entity\TypZmiany;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Planer\PlanerBundle\Repository\DzienWolnyFirmyRepository;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
@@ -36,7 +35,6 @@ class GrafikController extends AbstractController
         DzienWolnyFirmyRepository $dzienWolnyRepo,
         PodanieUrlopoweRepository $podanieRepo,
     ): Response {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
         $isAdmin = $this->isGranted('ROLE_ADMIN');
 
@@ -210,7 +208,6 @@ class GrafikController extends AbstractController
         GrafikWpisRepository $grafikWpisRepo,
         UserDepartamentRepository $userDepartamentRepo,
     ): JsonResponse {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $data = json_decode($request->getContent(), true);
@@ -236,7 +233,7 @@ class GrafikController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], 403);
         }
 
-        $user = $em->find($this->getParameter('planer.user_class') ?? PlanerUserInterface::class, $userId);
+        $user = $em->find($this->getParameter('planer.user_class'), $userId);
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
@@ -283,7 +280,6 @@ class GrafikController extends AbstractController
         GrafikWpisRepository $grafikWpisRepo,
         UserDepartamentRepository $userDepartamentRepo,
     ): JsonResponse {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $payload = json_decode($request->getContent(), true);
@@ -327,7 +323,7 @@ class GrafikController extends AbstractController
                 continue;
             }
 
-            $user = $em->find($this->getParameter('planer.user_class') ?? PlanerUserInterface::class, $userId);
+            $user = $em->find($this->getParameter('planer.user_class'), $userId);
             if (!$user) {
                 continue;
             }
@@ -371,7 +367,6 @@ class GrafikController extends AbstractController
         GrafikWpisRepository $grafikWpisRepo,
         UserDepartamentRepository $userDepartamentRepo,
     ): JsonResponse {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $data = json_decode($request->getContent(), true);
@@ -396,7 +391,7 @@ class GrafikController extends AbstractController
             return new JsonResponse(['error' => 'Access denied'], 403);
         }
 
-        $user = $em->find($this->getParameter('planer.user_class') ?? PlanerUserInterface::class, $userId);
+        $user = $em->find($this->getParameter('planer.user_class'), $userId);
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
@@ -422,7 +417,6 @@ class GrafikController extends AbstractController
         PolishHolidayService $holidayService,
         DzienWolnyFirmyRepository $dzienWolnyRepo,
     ): JsonResponse {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $payload = json_decode($request->getContent(), true);
@@ -509,7 +503,7 @@ class GrafikController extends AbstractController
     /**
      * @return Departament[]
      */
-    private function getUserDepartaments(PlanerUserInterface $user, UserDepartamentRepository $repo): array
+    private function getUserDepartaments(object $user, UserDepartamentRepository $repo): array
     {
         $uds = $repo->findBy(['user' => $user]);
         $list = [];
@@ -519,7 +513,7 @@ class GrafikController extends AbstractController
         return $list;
     }
 
-    private function getUserGlownyDepartament(PlanerUserInterface $user, UserDepartamentRepository $repo): ?Departament
+    private function getUserGlownyDepartament(object $user, UserDepartamentRepository $repo): ?Departament
     {
         $uds = $repo->findBy(['user' => $user]);
         foreach ($uds as $ud) {
@@ -530,13 +524,13 @@ class GrafikController extends AbstractController
         return null;
     }
 
-    private function isUserSzefDepartamentu(PlanerUserInterface $user, Departament $departament, UserDepartamentRepository $repo): bool
+    private function isUserSzefDepartamentu(object $user, Departament $departament, UserDepartamentRepository $repo): bool
     {
         $ud = $repo->findOneBy(['user' => $user, 'departament' => $departament]);
         return $ud !== null && $ud->isCzySzef();
     }
 
-    private function isGlownyDepartamentForUser(PlanerUserInterface $user, Departament $departament, UserDepartamentRepository $repo): bool
+    private function isGlownyDepartamentForUser(object $user, Departament $departament, UserDepartamentRepository $repo): bool
     {
         $ud = $repo->findOneBy(['user' => $user, 'departament' => $departament]);
         return $ud !== null && $ud->isCzyGlowny();

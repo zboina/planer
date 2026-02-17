@@ -31,7 +31,7 @@
                 {% for podanie in podania %}
                     {% set szablon = podanie.typZmiany ? podanie.typZmiany.szablonPodania : 'urlop' %}
                     <tr>
-                        <td class="text-nowrap">{{ podanie.user.fullName }}</td>
+                        <td class="text-nowrap">{{ planer_name(podanie.user) }}</td>
                         <td>{{ podanie.departament.nazwa }}</td>
                         <td>
                             {% if szablon == 'praca_zdalna' %}

@@ -61,9 +61,9 @@
                     {% for userId, user in users %}
                         {% set userUrlopy = urlopyPerUser[userId]|default({}) %}
                         {% set userRazem = 0 %}
-                        {% set limit = user.iloscDniUrlopuWRoku %}
+                        {% set limit = planer_urlop_limit(user) %}
                         <tr>
-                            <td class="text-nowrap">{{ user.fullName }}</td>
+                            <td class="text-nowrap">{{ planer_name(user) }}</td>
                             {% for m in 1..12 %}
                                 {% set dni = userUrlopy[m]|default([]) %}
                                 {% set count = dni|length %}
@@ -131,10 +131,10 @@
                         {% for m in 1..12 %}
                             {% set userRazem = userRazem + (userUrlopy[m]|default([]))|length %}
                         {% endfor %}
-                        {% set limit = user.iloscDniUrlopuWRoku %}
+                        {% set limit = planer_urlop_limit(user) %}
                         {% set pozostalo = limit - userRazem %}
                         <tr>
-                            <td class="text-nowrap">{{ user.fullName }}</td>
+                            <td class="text-nowrap">{{ planer_name(user) }}</td>
                             <td>
                                 {% if zakresy is not empty %}
                                     {% for zakres in zakresy %}

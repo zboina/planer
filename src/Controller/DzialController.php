@@ -5,10 +5,10 @@ namespace Planer\PlanerBundle\Controller;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Planer\PlanerBundle\Entity\Departament;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
+use Planer\PlanerBundle\Service\PlanerUserResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -24,6 +24,7 @@ class DzialController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly PlanerUserResolver $resolver,
     ) {
     }
 
@@ -38,7 +39,6 @@ class DzialController extends AbstractController
         ?int $departamentId,
         UserDepartamentRepository $udRepo,
     ): Response {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
         $isAdmin = $this->isGranted('ROLE_ADMIN');
 
@@ -94,7 +94,6 @@ class DzialController extends AbstractController
         Request $request,
         UserDepartamentRepository $udRepo,
     ): Response {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $dept = $this->em->getRepository(Departament::class)->find($departamentId);
@@ -118,12 +117,12 @@ class DzialController extends AbstractController
             $userId = $user->getId();
 
             if (array_key_exists($userId, $postedAdres)) {
-                $user->setAdres(trim($postedAdres[$userId]) ?: null);
+                $this->resolver->setAdres($user, trim($postedAdres[$userId]) ?: null);
             }
             if (array_key_exists($userId, $postedUrlop)) {
                 $val = (int) $postedUrlop[$userId];
                 if ($val > 0 && $val <= 100) {
-                    $user->setIloscDniUrlopuWRoku($val);
+                    $this->resolver->setIloscDniUrlopu($user, $val);
                 }
             }
             if (array_key_exists($userId, $postedKolejnosc)) {
@@ -153,7 +152,6 @@ class DzialController extends AbstractController
         PlanerUstawieniaRepository $ustawieniaRepo,
     ): Response {
         $firmaNazwa = $ustawieniaRepo->getSettings()->getFirmaNazwa();
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         $dept = $this->em->getRepository(Departament::class)->find($departamentId);
@@ -209,8 +207,8 @@ class DzialController extends AbstractController
                 'user' => $user,
                 'perMonth' => $perMonth,
                 'razem' => $razem,
-                'limit' => $user->getIloscDniUrlopuWRoku(),
-                'pozostalo' => $user->getIloscDniUrlopuWRoku() - $razem,
+                'limit' => $this->resolver->getIloscDniUrlopu($user),
+                'pozostalo' => $this->resolver->getIloscDniUrlopu($user) - $razem,
                 'zakresy' => $zakresyPerUser[$userId] ?? [],
             ];
         }
@@ -252,7 +250,7 @@ class DzialController extends AbstractController
     /**
      * @return Departament[]
      */
-    private function getSzefDepartamenty(PlanerUserInterface $user, UserDepartamentRepository $udRepo): array
+    private function getSzefDepartamenty(object $user, UserDepartamentRepository $udRepo): array
     {
         $uds = $udRepo->findBy(['user' => $user]);
         $depts = [];
@@ -264,7 +262,7 @@ class DzialController extends AbstractController
         return $depts;
     }
 
-    private function isUserSzefDepartamentu(PlanerUserInterface $user, Departament $departament, UserDepartamentRepository $udRepo): bool
+    private function isUserSzefDepartamentu(object $user, Departament $departament, UserDepartamentRepository $udRepo): bool
     {
         $ud = $udRepo->findOneBy(['user' => $user, 'departament' => $departament]);
         return $ud !== null && $ud->isCzySzef();

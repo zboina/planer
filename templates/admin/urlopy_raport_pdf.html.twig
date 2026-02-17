@@ -162,7 +162,7 @@
     <tbody>
         {% for row in raportData %}
             <tr>
-                <td class="col-name">{{ row.user.fullName }}</td>
+                <td class="col-name">{{ planer_name(row.user) }}</td>
                 {% for m in miesiace|keys %}
                     {% set count = row.perMonth[m] %}
                     <td class="{{ count > 0 ? 'cell-has' : 'cell-zero' }}">
@@ -204,7 +204,7 @@
     <tbody>
         {% for row in raportData %}
             <tr>
-                <td class="col-name">{{ row.user.fullName }}</td>
+                <td class="col-name">{{ planer_name(row.user) }}</td>
                 <td class="col-zakresy">
                     {% if row.zakresy is not empty %}
                         {% for zakres in row.zakresy %}

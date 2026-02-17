@@ -4,7 +4,6 @@ namespace Planer\PlanerBundle\Repository;
 
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\PodanieUrlopowe;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -44,7 +43,7 @@ class PodanieUrlopoweRepository extends ServiceEntityRepository
     /**
      * @return PodanieUrlopowe[]
      */
-    public function findByUser(PlanerUserInterface $user): array
+    public function findByUser(object $user): array
     {
         return $this->createQueryBuilder('p')
             ->where('p.user = :user')

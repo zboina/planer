@@ -14,4 +14,9 @@ services:
     Planer\PlanerBundle\Twig\PlanerExtension:
         arguments:
             $baseTemplate: '%planer.base_template%'
+            $resolver: '@Planer\PlanerBundle\Service\PlanerUserResolver'
         tags: ['twig.extension']
+
+    Planer\PlanerBundle\Service\PlanerUserResolver:
+        arguments:
+            $fullNameFields: '%planer.user_full_name_fields%'

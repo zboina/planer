@@ -50,10 +50,10 @@
                 <tbody>
                     {% for user in users %}
                     {% set ua = assignments[user.id] | default({}) %}
-                    <tr class="user-row" data-name="{{ user.fullName|lower }}">
-                        <td class="fw-bold">{{ user.fullName }}</td>
+                    <tr class="user-row" data-name="{{ planer_name(user)|lower }}">
+                        <td class="fw-bold">{{ planer_name(user) }}</td>
                         <td>
-                            <textarea class="form-control form-control-sm" name="adres[{{ user.id }}]" rows="2" placeholder="Adres pracownika..." style="font-size:.78rem;resize:vertical;">{{ user.adres }}</textarea>
+                            <textarea class="form-control form-control-sm" name="adres[{{ user.id }}]" rows="2" placeholder="Adres pracownika..." style="font-size:.78rem;resize:vertical;">{{ planer_adres(user) }}</textarea>
                         </td>
                         <td>
                             <div class="ms" data-user="{{ user.id }}">

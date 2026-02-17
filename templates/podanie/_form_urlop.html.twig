@@ -21,7 +21,7 @@
         <select class="form-select form-select-sm" id="zastepca" name="zastepca" required>
             <option value="">— wybierz —</option>
             {% for w in wspolpracownicy %}
-                <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+                <option value="{{ planer_name(w) }}">{{ planer_name(w) }}</option>
             {% endfor %}
         </select>
     </div>
@@ -40,7 +40,7 @@
     <div class="mb-3">
         <label class="form-label" for="adres">Adres zamieszkania</label>
         <input type="text" class="form-control form-control-sm" id="adres" name="adres"
-               placeholder="np. ul. Przykładowa 1, 00-001 Warszawa" value="{{ user.adres }}">
+               placeholder="np. ul. Przykładowa 1, 00-001 Warszawa" value="{{ planer_adres(user) }}">
         <small class="form-hint">Adres zostanie zapisany w Twoim profilu i użyty w podaniu.</small>
     </div>
 {% endif %}

@@ -27,11 +27,11 @@
 
 <div class="header-date">Warszawa, dnia {{ dataZlozenia|date('d.m.Y') }}</div>
 
-<div class="employee-field">{{ user.fullName }}</div>
+<div class="employee-field">{{ planer_name(user) }}</div>
 <div class="field-caption">(imię i nazwisko)</div>
 
-{% if user.adres %}
-    {% for line in user.adres|split("\n") %}
+{% if planer_adres(user) %}
+    {% for line in planer_adres(user)|split("\n") %}
         <div class="employee-field">{{ line }}</div>
     {% endfor %}
 {% else %}

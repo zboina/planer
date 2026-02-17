@@ -7,6 +7,11 @@ use Planer\PlanerBundle\Entity\PodanieUrlopowe;
 
 class PlaceholderReplacerService
 {
+    public function __construct(
+        private PlanerUserResolver $userResolver,
+    ) {
+    }
+
     /**
      * Replace all [[PLACEHOLDER]] tokens with real data from the podanie.
      */
@@ -15,10 +20,11 @@ class PlaceholderReplacerService
         $user = $podanie->getUser();
 
         $adresHtml = '';
-        if ($user->getAdres()) {
+        $adres = $this->userResolver->getAdres($user);
+        if ($adres) {
             $adresHtml = implode('<br>', array_map(
                 fn(string $line) => htmlspecialchars($line, ENT_QUOTES, 'UTF-8'),
-                explode("\n", $user->getAdres())
+                explode("\n", $adres)
             ));
         }
 
@@ -43,7 +49,7 @@ class PlaceholderReplacerService
         $urlopCzasSkreslenie = $this->buildUrlopCzasSkreslenie($podanie);
 
         $replacements = [
-            '[[IMIE_NAZWISKO]]' => htmlspecialchars($user->getFullName(), ENT_QUOTES, 'UTF-8'),
+            '[[IMIE_NAZWISKO]]' => htmlspecialchars($this->userResolver->getFullName($user), ENT_QUOTES, 'UTF-8'),
             '[[ADRES]]' => $adresHtml,
             '[[DATA_OD]]' => $podanie->getDataOd()->format('d.m.Y'),
             '[[DATA_DO]]' => $podanie->getDataDo()->format('d.m.Y'),
@@ -106,8 +112,6 @@ class PlaceholderReplacerService
     }
 
     /**
-     * Returns a reference of available placeholders with descriptions.
-     *
      * @return array<string, string>
      */
     public static function getPlaceholderReference(): array
@@ -132,9 +136,6 @@ class PlaceholderReplacerService
         ];
     }
 
-    /**
-     * Build HTML for typ podania with strikethrough — matching the original Twig logic.
-     */
     private function buildTypPodaniaSkreslenie(PodanieUrlopowe $podanie): string
     {
         $typPodania = $podanie->getTypPodania();
@@ -145,7 +146,7 @@ class PlaceholderReplacerService
         }
 
         $parts = [];
-        foreach ($typy as $i => $t) {
+        foreach ($typy as $t) {
             if ($t === $typPodania->getNazwa()) {
                 $parts[] = '<strong>' . htmlspecialchars($t, ENT_QUOTES, 'UTF-8') . '</strong>';
             } else {
@@ -156,9 +157,6 @@ class PlaceholderReplacerService
         return implode(', ', $parts);
     }
 
-    /**
-     * Build "urlopu(*), czasu wolnego od pracy(*)" with strikethrough on the unselected one.
-     */
     private function buildUrlopCzasSkreslenie(PodanieUrlopowe $podanie): string
     {
         $typPodania = $podanie->getTypPodania();
@@ -171,7 +169,6 @@ class PlaceholderReplacerService
             return '<span style="text-decoration:line-through;">' . $urlop . '</span>, ' . $czasWolny;
         }
 
-        // Default: urlop selected (or no selection)
         return $urlop . ', <span style="text-decoration:line-through;">' . $czasWolny . '</span>';
     }
 }

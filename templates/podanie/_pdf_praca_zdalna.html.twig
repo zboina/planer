@@ -99,10 +99,10 @@
 <div class="date-line">Warszawa, dnia .....<strong>{{ dataZlozenia|date('d.m.Y') }}</strong>.....</div>
 
 <div class="employee-block">
-    <div><span class="dotted-field">{{ user.fullName }}</span></div>
+    <div><span class="dotted-field">{{ planer_name(user) }}</span></div>
     <div class="field-caption">(imię i nazwisko pracownika)</div>
-    {% if user.adres %}
-        {% for line in user.adres|split("\n") %}
+    {% if planer_adres(user) %}
+        {% for line in planer_adres(user)|split("\n") %}
             <div><span class="dotted-field">{{ line }}</span></div>
         {% endfor %}
     {% else %}

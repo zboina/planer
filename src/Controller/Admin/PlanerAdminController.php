@@ -13,11 +13,11 @@ use Planer\PlanerBundle\Entity\SzablonPodania;
 use Planer\PlanerBundle\Entity\TypPodania;
 use Planer\PlanerBundle\Entity\TypZmiany;
 use Planer\PlanerBundle\Entity\UserDepartament;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
 use Planer\PlanerBundle\Service\PdfImportService;
+use Planer\PlanerBundle\Service\PlanerUserResolver;
 use Planer\PlanerBundle\Service\PlaceholderReplacerService;
 use Planer\PlanerBundle\Service\PolishHolidayService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +36,7 @@ class PlanerAdminController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly PlanerUserResolver $resolver,
     ) {
     }
 
@@ -135,7 +136,7 @@ class PlanerAdminController extends AbstractController
         // Save address for each user
         foreach ($postedAdres as $userId => $adres) {
             if (isset($usersById[$userId])) {
-                $usersById[$userId]->setAdres(trim($adres) ?: null);
+                $this->resolver->setAdres($usersById[$userId], trim($adres) ?: null);
             }
         }
 
@@ -327,8 +328,8 @@ class PlanerAdminController extends AbstractController
                 'user' => $user,
                 'perMonth' => $perMonth,
                 'razem' => $razem,
-                'limit' => $user->getIloscDniUrlopuWRoku(),
-                'pozostalo' => $user->getIloscDniUrlopuWRoku() - $razem,
+                'limit' => $this->resolver->getIloscDniUrlopu($user),
+                'pozostalo' => $this->resolver->getIloscDniUrlopu($user) - $razem,
                 'zakresy' => $zakresyPerUser[$userId] ?? [],
             ];
         }
@@ -392,9 +393,9 @@ class PlanerAdminController extends AbstractController
             throw $this->createNotFoundException('Użytkownik nie istnieje.');
         }
 
-        $dept = $user->getGlownyDepartament();
+        $dept = $this->resolver->getGlownyDepartament($user);
         if (!$dept) {
-            $depts = $user->getDepartamentList();
+            $depts = $this->resolver->getDepartamentList($user);
             $dept = $depts[0] ?? null;
         }
 
@@ -476,9 +477,9 @@ class PlanerAdminController extends AbstractController
             throw $this->createNotFoundException('Użytkownik nie istnieje.');
         }
 
-        $dept = $user->getGlownyDepartament();
+        $dept = $this->resolver->getGlownyDepartament($user);
         if (!$dept) {
-            $depts = $user->getDepartamentList();
+            $depts = $this->resolver->getDepartamentList($user);
             $dept = $depts[0] ?? null;
         }
         if (!$dept) {

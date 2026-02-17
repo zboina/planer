@@ -2,35 +2,19 @@
 
 namespace Planer\PlanerBundle\Model;
 
-use Doctrine\Common\Collections\Collection;
-use Planer\PlanerBundle\Entity\Departament;
-use Planer\PlanerBundle\Entity\UserDepartament;
-
 /**
- * Interface that your User entity must implement.
+ * Marker interface for Doctrine resolve_target_entities.
  *
- * The easiest way: add `use PlanerUserTrait;` to your User class
- * — it provides all these methods automatically.
+ * Your User class can optionally implement this interface.
+ * If it does, Doctrine relations will work natively.
+ * If it doesn't, the bundle will still work — it uses PlanerUserResolver
+ * to access user data and PlanerUserProfile to store planer-specific fields.
+ *
+ * For full integration, add to your User class:
+ *   implements PlanerUserInterface
+ *   use PlanerUserTrait;
  */
 interface PlanerUserInterface
 {
     public function getId(): ?int;
-
-    public function getFullName(): ?string;
-
-    public function getAdres(): ?string;
-
-    public function setAdres(?string $adres): static;
-
-    public function getIloscDniUrlopuWRoku(): int;
-
-    public function setIloscDniUrlopuWRoku(int $iloscDniUrlopuWRoku): static;
-
-    /** @return Collection<int, UserDepartament> */
-    public function getUserDepartamenty(): Collection;
-
-    public function getGlownyDepartament(): ?Departament;
-
-    /** @return Departament[] */
-    public function getDepartamentList(): array;
 }

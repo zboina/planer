@@ -72,22 +72,22 @@
                                     </td>
                                     <td class="fw-bold text-nowrap">
                                         {% if ud.czySzef %}<span style="color: #f59e0b;" title="Szef działu">&#9733; </span>{% endif %}
-                                        {{ u.fullName }}
+                                        {{ planer_name(u) }}
                                         {% if not isGlowny %}<span class="text-secondary" style="font-size:.7rem; font-weight:normal;">(dodatkowy)</span>{% endif %}
                                     </td>
                                     {% if isGlowny %}
                                         <td>
                                             <textarea class="form-control form-control-sm" name="adres[{{ u.id }}]" rows="2"
                                                       placeholder="Adres pracownika..."
-                                                      style="font-size:.78rem; resize:vertical;">{{ u.adres }}</textarea>
+                                                      style="font-size:.78rem; resize:vertical;">{{ planer_adres(u) }}</textarea>
                                         </td>
                                         <td class="text-center">
                                             <input type="number" class="form-control form-control-sm text-center" name="urlop[{{ u.id }}]"
-                                                   value="{{ u.iloscDniUrlopuWRoku }}" min="1" max="100" style="width: 80px; margin: 0 auto;">
+                                                   value="{{ planer_urlop_limit(u) }}" min="1" max="100" style="width: 80px; margin: 0 auto;">
                                         </td>
                                     {% else %}
-                                        <td class="text-secondary" style="font-size:.78rem;">{{ u.adres ?: '—' }}</td>
-                                        <td class="text-center text-secondary">{{ u.iloscDniUrlopuWRoku }}</td>
+                                        <td class="text-secondary" style="font-size:.78rem;">{{ planer_adres(u) ?: '—' }}</td>
+                                        <td class="text-center text-secondary">{{ planer_urlop_limit(u) }}</td>
                                     {% endif %}
                                     <td class="text-center">
                                         {% if isGlowny %}

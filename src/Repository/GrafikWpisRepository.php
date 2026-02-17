@@ -4,7 +4,6 @@ namespace Planer\PlanerBundle\Repository;
 
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\GrafikWpis;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -86,7 +85,7 @@ class GrafikWpisRepository extends ServiceEntityRepository
         return $result;
     }
 
-    public function findOneByUserDataDepartament(PlanerUserInterface $user, \DateTimeInterface $data, Departament $departament): ?GrafikWpis
+    public function findOneByUserDataDepartament(object $user, \DateTimeInterface $data, Departament $departament): ?GrafikWpis
     {
         return $this->createQueryBuilder('gw')
             ->where('gw.user = :user')

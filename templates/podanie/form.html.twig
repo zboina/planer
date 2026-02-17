@@ -2,7 +2,7 @@
 
 {% block title %}{{ szablonLabel|default('Podanie') }}{% endblock %}
 {% block page_pretitle %}Grafik pracy{% endblock %}
-{% block page_title %}{{ szablonLabel|default('Podanie') }} — {{ user.fullName }}{% endblock %}
+{% block page_title %}{{ szablonLabel|default('Podanie') }} — {{ planer_name(user) }}{% endblock %}
 
 {% block body %}
 <div class="card">
@@ -29,9 +29,9 @@
             {# --- Info + Przyciski --- #}
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="text-secondary" style="font-size:.8rem;">
-                    <strong>{{ user.fullName }}</strong>
+                    <strong>{{ planer_name(user) }}</strong>
                     {% if dept %} &middot; {{ dept.nazwa }}{% endif %}
-                    {% if (editAdres is not defined or not editAdres) and user.adres %} &middot; {{ user.adres }}{% endif %}
+                    {% if (editAdres is not defined or not editAdres) and planer_adres(user) %} &middot; {{ planer_adres(user) }}{% endif %}
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">

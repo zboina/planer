@@ -31,8 +31,8 @@
 <table class="header" cellpadding="0" cellspacing="0">
     <tr>
         <td class="left">
-            <strong>{{ user.fullName }}</strong><br>
-            {% if user.adres %}{% for line in user.adres|split("\n") %}{{ line }}<br>{% endfor %}{% endif %}
+            <strong>{{ planer_name(user) }}</strong><br>
+            {% if planer_adres(user) %}{% for line in planer_adres(user)|split("\n") %}{{ line }}<br>{% endfor %}{% endif %}
         </td>
         <td class="right">
             <strong>{{ firmaNazwa }}</strong><br>

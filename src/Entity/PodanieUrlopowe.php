@@ -18,7 +18,7 @@ class PodanieUrlopowe
 
     #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private PlanerUserInterface $user;
+    private object $user;
 
     #[ORM\ManyToOne(targetEntity: Departament::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -70,12 +70,12 @@ class PodanieUrlopowe
         return $this->id;
     }
 
-    public function getUser(): PlanerUserInterface
+    public function getUser(): object
     {
         return $this->user;
     }
 
-    public function setUser(PlanerUserInterface $user): static
+    public function setUser(object $user): static
     {
         $this->user = $user;
         return $this;

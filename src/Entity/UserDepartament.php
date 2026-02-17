@@ -18,7 +18,7 @@ class UserDepartament
 
     #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class, inversedBy: 'userDepartamenty')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private PlanerUserInterface $user;
+    private object $user;
 
     #[ORM\ManyToOne(targetEntity: Departament::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -36,7 +36,7 @@ class UserDepartament
     #[ORM\Column(options: ['default' => false])]
     private bool $czyUkryty = false;
 
-    public function __construct(PlanerUserInterface $user, Departament $departament)
+    public function __construct(object $user, Departament $departament)
     {
         $this->user = $user;
         $this->departament = $departament;
@@ -47,7 +47,7 @@ class UserDepartament
         return $this->id;
     }
 
-    public function getUser(): PlanerUserInterface
+    public function getUser(): object
     {
         return $this->user;
     }

@@ -4,7 +4,6 @@ namespace Planer\PlanerBundle\Repository;
 
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\UserDepartament;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -36,7 +35,6 @@ class UserDepartamentRepository extends ServiceEntityRepository
         return $qb
             ->orderBy('ud.czyGlowny', 'DESC')
             ->addOrderBy('ud.kolejnosc', 'ASC')
-            ->addOrderBy('u.fullName', 'ASC')
             ->getQuery()
             ->getResult();
     }
@@ -62,7 +60,7 @@ class UserDepartamentRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return PlanerUserInterface[]
+     * @return object[]
      */
     public function findAllPlanerUsers(): array
     {
@@ -71,7 +69,6 @@ class UserDepartamentRepository extends ServiceEntityRepository
 
         return $this->getEntityManager()->getRepository($userClass)
             ->createQueryBuilder('u')
-            ->orderBy('u.fullName', 'ASC')
             ->getQuery()
             ->getResult();
     }

@@ -8,11 +8,11 @@ use Planer\PlanerBundle\Entity\PodanieUrlopowe;
 use Planer\PlanerBundle\Entity\RodzajUrlopu;
 use Planer\PlanerBundle\Entity\TypPodania;
 use Planer\PlanerBundle\Entity\TypZmiany;
-use Planer\PlanerBundle\Model\PlanerUserInterface;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
 use Planer\PlanerBundle\Repository\PodanieUrlopoweRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
+use Planer\PlanerBundle\Service\PlanerUserResolver;
 use Planer\PlanerBundle\Service\PlaceholderReplacerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,6 +37,7 @@ class PodanieController extends AbstractController
 
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly PlanerUserResolver $resolver,
     ) {
     }
 
@@ -45,7 +46,6 @@ class PodanieController extends AbstractController
         PodanieUrlopoweRepository $podanieRepo,
         UserDepartamentRepository $udRepo,
     ): Response {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         if ($this->isGranted('ROLE_ADMIN')) {
@@ -74,9 +74,9 @@ class PodanieController extends AbstractController
     ): Response {
         $user = $this->resolveTargetUser($userId, $udRepo);
 
-        $dept = $user->getGlownyDepartament();
+        $dept = $this->resolver->getGlownyDepartament($user);
         if (!$dept) {
-            $depts = $user->getDepartamentList();
+            $depts = $this->resolver->getDepartamentList($user);
             $dept = $depts[0] ?? null;
         }
 
@@ -109,7 +109,6 @@ class PodanieController extends AbstractController
             $dataDo = $dataDo ?: date('Y-m-d');
         }
 
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
         $editAdres = ($currentUser->getId() === $user->getId());
 
@@ -161,9 +160,9 @@ class PodanieController extends AbstractController
     ): Response {
         $user = $this->resolveTargetUser($userId, $udRepo);
 
-        $dept = $user->getGlownyDepartament();
+        $dept = $this->resolver->getGlownyDepartament($user);
         if (!$dept) {
-            $depts = $user->getDepartamentList();
+            $depts = $this->resolver->getDepartamentList($user);
             $dept = $depts[0] ?? null;
         }
         if (!$dept) {
@@ -178,12 +177,11 @@ class PodanieController extends AbstractController
         $dataDo = new \DateTime($request->request->getString('data_do'));
         $podpis = trim($request->request->getString('podpis')) ?: null;
 
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
         if ($currentUser->getId() === $user->getId()) {
             $adres = trim($request->request->getString('adres'));
             if ($adres) {
-                $user->setAdres($adres);
+                $this->resolver->setAdres($user, $adres);
             }
         }
 
@@ -319,7 +317,7 @@ class PodanieController extends AbstractController
 
     // ─── Access control helpers ───────────────────────────────
 
-    private function resolveTargetUser(int $userId, UserDepartamentRepository $udRepo): PlanerUserInterface
+    private function resolveTargetUser(int $userId, UserDepartamentRepository $udRepo): object
     {
         $userClass = $this->getParameter('planer.user_class');
         $user = $this->em->getRepository($userClass)->find($userId);
@@ -327,7 +325,6 @@ class PodanieController extends AbstractController
             throw $this->createNotFoundException('Użytkownik nie istnieje.');
         }
 
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         if ($currentUser->getId() === $user->getId()) {
@@ -347,7 +344,6 @@ class PodanieController extends AbstractController
 
     private function denyUnlessCanAccess(PodanieUrlopowe $podanie, UserDepartamentRepository $udRepo): void
     {
-        /** @var PlanerUserInterface $currentUser */
         $currentUser = $this->getUser();
 
         if ($currentUser->getId() === $podanie->getUser()->getId()) {
@@ -365,7 +361,7 @@ class PodanieController extends AbstractController
         throw $this->createAccessDeniedException('Brak uprawnień.');
     }
 
-    private function canManageUser(PlanerUserInterface $szef, PlanerUserInterface $targetUser, UserDepartamentRepository $udRepo): bool
+    private function canManageUser(object $szef, object $targetUser, UserDepartamentRepository $udRepo): bool
     {
         $szefDepts = $this->getSzefDepartamenty($szef, $udRepo);
         foreach ($szefDepts as $dept) {
@@ -377,7 +373,7 @@ class PodanieController extends AbstractController
         return false;
     }
 
-    private function isUserSzefAnyDept(PlanerUserInterface $user, UserDepartamentRepository $udRepo): bool
+    private function isUserSzefAnyDept(object $user, UserDepartamentRepository $udRepo): bool
     {
         $uds = $udRepo->findBy(['user' => $user]);
         foreach ($uds as $ud) {
@@ -391,7 +387,7 @@ class PodanieController extends AbstractController
     /**
      * @return \Planer\PlanerBundle\Entity\Departament[]
      */
-    private function getSzefDepartamenty(PlanerUserInterface $user, UserDepartamentRepository $udRepo): array
+    private function getSzefDepartamenty(object $user, UserDepartamentRepository $udRepo): array
     {
         $uds = $udRepo->findBy(['user' => $user]);
         $depts = [];
@@ -403,7 +399,7 @@ class PodanieController extends AbstractController
         return $depts;
     }
 
-    private function isUserSzefDepartamentu(PlanerUserInterface $user, \Planer\PlanerBundle\Entity\Departament $departament, UserDepartamentRepository $udRepo): bool
+    private function isUserSzefDepartamentu(object $user, \Planer\PlanerBundle\Entity\Departament $departament, UserDepartamentRepository $udRepo): bool
     {
         $ud = $udRepo->findOneBy(['user' => $user, 'departament' => $departament]);
         return $ud !== null && $ud->isCzySzef();

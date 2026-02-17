@@ -204,9 +204,9 @@
                     {% for entry in users %}
                         {% set u = entry.user %}
                         <tr class="{{ not entry.czyGlowny ? 'not-glowny' : '' }}">
-                            <td class="col-name" title="{{ u.fullName }}{{ not entry.czyGlowny ? ' (dział dodatkowy)' : '' }}">
+                            <td class="col-name" title="{{ planer_name(u) }}{{ not entry.czyGlowny ? ' (dział dodatkowy)' : '' }}">
                                 {% if entry.czySzef %}<span class="szef-star" title="Szef działu">&#9733;</span>{% endif %}
-                                {{ u.fullName }}
+                                {{ planer_name(u) }}
                             </td>
                             {% for d in dni %}
                                 {% set wpis = grid[u.id][d.numer] ?? null %}
