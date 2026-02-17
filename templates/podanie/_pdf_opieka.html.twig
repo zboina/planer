@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { margin: 1.5cm 2cm; }
+        body {
+            font-family: 'DejaVu Serif', serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #000;
+        }
+        .header-date { text-align: right; margin-bottom: 10px; font-size: 10pt; }
+        .employee-field { border-bottom: 1px dotted #999; padding-bottom: 2px; margin-bottom: 1px; min-height: 14px; }
+        .field-caption { font-size: 7pt; color: #666; margin: 1px 0 8px 0; padding-left: 60px; }
+        .company { margin-left: 45%; margin-bottom: 16px; }
+        .company p { margin: 0; font-weight: bold; font-size: 11pt; }
+        .sig-line { border-bottom: 1px dotted #999; width: 100%; height: 20px; }
+        .sig-block { margin-top: 6px; }
+        .sig-caption { font-size: 7pt; color: #666; margin-top: 1px; margin-bottom: 10px; }
+        .legal { font-size: 8pt; font-style: italic; margin-top: 20px; }
+        .legal b { font-weight: bold; }
+        p { margin: 4px 0; text-align: justify; }
+    </style>
+</head>
+<body>
+
+<div class="header-date">Warszawa, dnia {{ dataZlozenia|date('d.m.Y') }}</div>
+
+<div class="employee-field">{{ user.fullName }}</div>
+<div class="field-caption">(imię i nazwisko)</div>
+
+{% if user.adres %}
+    {% for line in user.adres|split("\n") %}
+        <div class="employee-field">{{ line }}</div>
+    {% endfor %}
+{% else %}
+    <div class="employee-field">&nbsp;</div>
+    <div class="employee-field">&nbsp;</div>
+{% endif %}
+<div class="field-caption">(adres zamieszkania)</div>
+
+<div class="company">
+    <p>{{ firmaNazwa }}</p>
+    {% for line in firmaAdres|split("\n") %}<p>{{ line }}</p>{% endfor %}
+</div>
+
+<p style="text-indent: 30pt;">
+    Oświadczam, że mam zamiar korzystać z uprawnień, o których mowa
+    w art. 188 Kodeksu pracy.
+</p>
+
+<p style="text-indent: 30pt;">
+    Na podstawie ww. artykułu, w związku z wychowywaniem przeze mnie
+    dziecka w wieku do 14 lat, zwracam się z wnioskiem o udzielenie mi zwolnienia
+    od pracy za rok <strong>{{ dataOd|date('Y') }}</strong>
+    w dniach od <strong>{{ dataOd|date('d.m.Y') }}</strong>
+    do <strong>{{ dataDo|date('d.m.Y') }}</strong>
+</p>
+
+<p style="text-indent: 30pt; margin-top: 10px;">
+    Jednocześnie oświadczam, że w roku <strong>{{ dataOd|date('Y') }}</strong> drugi rodzic dziecka nie
+    zamierza korzystać z uprawnień o których mowa w art. 188 Kodeksu pracy.
+</p>
+
+{% if podpis is defined and podpis %}
+<div style="text-align: right; font-style: italic; font-size: 11pt; margin-top: 20px;">{{ podpis }}</div>
+{% else %}
+<div style="text-align: right; margin-top: 20px;">
+    <div class="sig-line" style="width: 55%; margin-left: auto;"></div>
+</div>
+{% endif %}
+<div class="sig-caption" style="text-align: right;">(podpis pracownika)</div>
+
+<div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-caption" style="text-align: center;">(podpis przełożonego)</div>
+</div>
+
+<div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-caption" style="text-align: center;">(podpis osoby prowadzącej sprawy kadrowe)</div>
+</div>
+
+<p style="margin-top: 14px;">Wyrażam zgodę</p>
+
+<div class="sig-block" style="margin-top: 8px;">
+    <div class="sig-line"></div>
+    <div class="sig-caption" style="margin-left: 30pt;">(podpis pracodawcy)</div>
+</div>
+
+<div class="legal">
+    <b>Podstawa prawna:</b><br><br>
+    <b>§ 6 ust. 2, pkt 2c Rozporządzenia Ministra Pracy i Polityki Socjalnej z dnia 28 maja 1996 r.
+    w sprawie zakresu prowadzenia przez pracodawców dokumentacji w sprawach związanych
+    ze stosunkiem pracy oraz sposobu prowadzenia akt osobowych pracownika
+    (Dz. U. Nr 62, poz. 286 z póź. zm.)</b>
+</div>
+
+</body>
+</html>

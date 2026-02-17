@@ -1,0 +1,174 @@
+<div class="mb-3">
+    <label class="form-label required" for="nazwa">Nazwa szablonu</label>
+    <input type="text" class="form-control" id="nazwa" name="nazwa"
+           value="{{ szablon ? szablon.nazwa : '' }}" required maxlength="100"
+           placeholder="np. Podanie o urlop">
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Importuj z pliku</label>
+    <div class="input-group">
+        <input type="file" class="form-control" id="pdf_import_file"
+               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <button type="button" class="btn btn-outline-primary" id="btn-import-pdf">
+            Wczytaj plik
+        </button>
+    </div>
+    <small class="form-hint">
+        Wczytaj plik PDF lub DOCX jako szkielet HTML. Treść zostanie wstawiona do edytora —
+        następnie ręcznie dodaj placeholdery [[...]] w odpowiednie miejsca.
+        <strong>Zalecany format: DOCX</strong> (lepsza jakość konwersji).
+    </small>
+</div>
+
+<div class="mb-3">
+    <label class="form-label required" for="tresc_html">Treść HTML szablonu</label>
+    <textarea class="form-control" id="tresc_html" name="tresc_html" rows="20"
+              style="font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; tab-size: 4;"
+              required>{{ szablon ? szablon.trescHtml : '' }}</textarea>
+    <small class="form-hint">Pełny dokument HTML z placeholderami [[...]] do podmiany.</small>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Dostępne placeholdery</label>
+    <div class="d-flex flex-wrap gap-1" id="placeholder-pills">
+        {% for placeholder, opis in placeholders %}
+            <button type="button" class="btn btn-sm btn-outline-primary placeholder-btn"
+                    data-placeholder="{{ placeholder }}" title="{{ opis }}">
+                {{ placeholder }}
+            </button>
+        {% endfor %}
+    </div>
+    <small class="form-hint">Kliknij placeholder aby wstawić go na pozycji kursora w edytorze.</small>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Pola formularza</label>
+    <div class="d-flex flex-wrap gap-3">
+        {% set polaOpcje = {
+            typ_podania: 'Typ podania',
+            rodzaj_urlopu: 'Rodzaj urlopu',
+            zastepca: 'Zastępca',
+            telefon: 'Telefon',
+            uzasadnienie: 'Uzasadnienie',
+            podpis: 'Podpis',
+            adres: 'Adres'
+        } %}
+        {% set currentPola = szablon ? szablon.polaFormularza : [] %}
+        {% for key, label in polaOpcje %}
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" name="pola_formularza[]" value="{{ key }}"
+                       {{ key in currentPola ? 'checked' : '' }}>
+                <span class="form-check-label">{{ label }}</span>
+            </label>
+        {% endfor %}
+    </div>
+    <small class="form-hint">Zaznacz pola, które będą widoczne w formularzu składania podania.</small>
+</div>
+
+<div class="mb-3">
+    <label class="form-check">
+        <input class="form-check-input" type="checkbox" name="aktywny" value="1"
+               {{ (szablon is null or szablon.aktywny) ? 'checked' : '' }}>
+        <span class="form-check-label">Aktywny</span>
+    </label>
+</div>
+
+<div class="mb-3">
+    <button type="button" class="btn btn-outline-info" id="btn-preview-pdf">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+            <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+        </svg>
+        Podgląd PDF
+    </button>
+    <small class="form-hint d-block mt-1">Generuje PDF z przykładowymi danymi na podstawie bieżącej treści.</small>
+</div>
+
+<script>
+(function() {
+    // Insert placeholder at cursor position in textarea
+    var textarea = document.getElementById('tresc_html');
+    document.querySelectorAll('.placeholder-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var ph = this.dataset.placeholder;
+            if (!textarea) return;
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var val = textarea.value;
+            textarea.value = val.substring(0, start) + ph + val.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + ph.length;
+            textarea.focus();
+        });
+    });
+
+    // Import PDF
+    var importBtn = document.getElementById('btn-import-pdf');
+    var pdfFileInput = document.getElementById('pdf_import_file');
+    if (importBtn && pdfFileInput) {
+        importBtn.addEventListener('click', function() {
+            var file = pdfFileInput.files[0];
+            if (!file) {
+                alert('Wybierz plik PDF lub DOCX.');
+                return;
+            }
+
+            importBtn.disabled = true;
+            importBtn.textContent = 'Wczytywanie...';
+
+            var formData = new FormData();
+            formData.append('pdf_file', file);
+
+            fetch('{{ path("planer_admin_szablon_import_pdf") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    textarea.value = data.html;
+                }
+            })
+            .catch(function(err) {
+                alert('Błąd podczas importu: ' + err.message);
+            })
+            .finally(function() {
+                importBtn.disabled = false;
+                importBtn.textContent = 'Wczytaj plik';
+            });
+        });
+    }
+
+    // Preview PDF
+    var previewBtn = document.getElementById('btn-preview-pdf');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', function() {
+            var html = textarea.value;
+            if (!html.trim()) {
+                alert('Treść HTML jest pusta.');
+                return;
+            }
+
+            var previewUrl = '{{ szablon ? path("planer_admin_szablon_preview_pdf", {id: szablon.id}) : path("planer_admin_szablon_preview_pdf_new") }}';
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = previewUrl;
+            form.target = '_blank';
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'tresc_html';
+            input.value = html;
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            form.remove();
+        });
+    }
+})();
+</script>

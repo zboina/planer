@@ -1,0 +1,76 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Dni wolne firmy — Panel planera{% endblock %}
+{% block panel_heading %}Dni wolne firmy{% endblock %}
+
+{% block panel_actions %}
+    <a href="{{ path('dzien_wolny_new') }}" class="btn btn-success">+ Nowy dzień wolny</a>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <div class="col-lg-7">
+        <h3 class="mb-3">Firmowe dni wolne (dodane ręcznie)</h3>
+        <div class="table-responsive">
+            <table class="table table-vcenter">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Dzień tygodnia</th>
+                        <th>Nazwa</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dniWolne %}
+                    <tr>
+                        <td>{{ d.data|date('Y-m-d') }}</td>
+                        <td>{{ d.data|date('l')|replace({
+                            'Monday': 'Poniedziałek',
+                            'Tuesday': 'Wtorek',
+                            'Wednesday': 'Środa',
+                            'Thursday': 'Czwartek',
+                            'Friday': 'Piątek',
+                            'Saturday': 'Sobota',
+                            'Sunday': 'Niedziela'
+                        }) }}</td>
+                        <td>{{ d.nazwa }}</td>
+                        <td>
+                            <a href="{{ path('dzien_wolny_edit', {id: d.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                            <form method="post" action="{{ path('dzien_wolny_delete', {id: d.id}) }}" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć ten dzień wolny?')">
+                                <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Brak firmowych dni wolnych.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <h3 class="mb-3">Święta państwowe {{ rok }}</h3>
+        <div class="table-responsive">
+            <table class="table table-vcenter">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Nazwa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data, nazwa in swietaPanstwowe %}
+                    <tr>
+                        <td>{{ data }}</td>
+                        <td>{{ nazwa }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

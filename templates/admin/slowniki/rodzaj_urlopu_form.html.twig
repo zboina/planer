@@ -1,0 +1,23 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}{{ rodzaj ? 'Edycja: ' ~ rodzaj.nazwa : 'Nowy rodzaj urlopu' }} — Panel planera{% endblock %}
+{% block panel_heading %}{{ rodzaj ? 'Edycja: ' ~ rodzaj.nazwa : 'Nowy rodzaj urlopu' }}{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    <div class="row">
+        <div class="col-md-8 mb-3">
+            <label class="form-label required" for="nazwa">Nazwa</label>
+            <input type="text" class="form-control" id="nazwa" name="nazwa" value="{{ rodzaj ? rodzaj.nazwa : '' }}" required maxlength="100">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label" for="kolejnosc">Kolejność</label>
+            <input type="number" class="form-control" id="kolejnosc" name="kolejnosc" value="{{ rodzaj ? rodzaj.kolejnosc : 0 }}">
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Zapisz</button>
+        <a href="{{ path('planer_admin_slowniki') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,149 @@
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label required" for="nazwa">Nazwa</label>
+            <input type="text" class="form-control" id="nazwa" name="nazwa" value="{{ typ ? typ.nazwa : '' }}" required maxlength="50">
+        </div>
+        <div class="col-md-3 mb-3">
+            <label class="form-label required" for="skrot">Skrót</label>
+            <input type="text" class="form-control" id="skrot" name="skrot" value="{{ typ ? typ.skrot : '' }}" required maxlength="5">
+        </div>
+        <div class="col-md-3 mb-3">
+            <label class="form-label required" for="kolor">Kolor</label>
+            <input type="color" class="form-control form-control-color" id="kolor" name="kolor" value="{{ typ ? typ.kolor : '#4caf50' }}">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label class="form-label" for="godziny_od">Godziny od</label>
+            <input type="time" class="form-control" id="godziny_od" name="godziny_od" value="{{ typ ? typ.godzinyOd : '' }}">
+        </div>
+        <div class="col-md-3 mb-3">
+            <label class="form-label" for="godziny_do">Godziny do</label>
+            <input type="time" class="form-control" id="godziny_do" name="godziny_do" value="{{ typ ? typ.godzinyDo : '' }}">
+        </div>
+        <div class="col-md-6 mb-3 d-flex align-items-end gap-3">
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" name="aktywny" value="1" {{ (typ is null or typ.aktywny) ? 'checked' : '' }}>
+                <span class="form-check-label">Aktywny</span>
+            </label>
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" name="tylko_glowny" value="1" {{ (typ is not null and typ.tylkoGlowny) ? 'checked' : '' }}>
+                <span class="form-check-label">Tylko dział główny</span>
+            </label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Przypisane działy</label>
+            <div class="form-selectgroup form-selectgroup-pills">
+                {% for dept in departamenty|default([]) %}
+                    <label class="form-selectgroup-item">
+                        <input type="checkbox" name="departamenty[]" value="{{ dept.id }}" class="form-selectgroup-input"
+                               {{ (typ is not null and dept.id in typ.departamentyIds) ? 'checked' : '' }}>
+                        <span class="form-selectgroup-label">{{ dept.nazwa }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <small class="form-hint">Brak zaznaczenia = typ dostępny we wszystkich działach.</small>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label" for="szablon_id">Szablon podania/wniosku</label>
+            <select class="form-select" id="szablon_id" name="szablon_id">
+                <option value="">(brak — typ bez podania)</option>
+                {% for s in szablony|default([]) %}
+                    <option value="{{ s.id }}"{{ (typ is not null and typ.szablon is not null and typ.szablon.id == s.id) ? ' selected' : '' }}>{{ s.nazwa }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Jeśli ustawione, użytkownicy mogą składać podanie/wniosek z poziomu grafiku.</small>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label" for="skrot_klawiaturowy">Skrót klawiaturowy</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="skrot_klawiaturowy" name="skrot_klawiaturowy"
+                       value="{{ typ ? typ.skrotKlawiaturowy : '' }}" readonly
+                       placeholder="Kliknij i naciśnij kombinację klawiszy..."
+                       style="cursor:pointer; background:#fff;"
+                       data-existing='{{ existingShortcuts|default([])|json_encode }}'>
+                <button type="button" class="btn btn-outline-secondary" id="clear-shortcut" title="Wyczyść">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="shortcut-feedback" class="form-text"></div>
+            <small class="form-hint">Kliknij w pole i naciśnij klawisz lub kombinację (np. Ctrl+1, Shift+D). Delete jest zarezerwowany do kasowania.</small>
+        </div>
+    </div>
+
+<script>
+(function() {
+    var input = document.getElementById('skrot_klawiaturowy');
+    var feedback = document.getElementById('shortcut-feedback');
+    var clearBtn = document.getElementById('clear-shortcut');
+    if (!input) return;
+
+    var existing = [];
+    try { existing = JSON.parse(input.dataset.existing || '[]'); } catch(e) {}
+
+    input.addEventListener('keydown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.key === 'Escape') {
+            input.blur();
+            return;
+        }
+        if (e.key === 'Tab') return;
+
+        // Don't allow bare modifier keys
+        if (['Control', 'Shift', 'Alt', 'Meta'].indexOf(e.key) !== -1) return;
+
+        // Don't allow Delete — it's reserved
+        if (e.key === 'Delete') {
+            feedback.textContent = 'Delete jest zarezerwowany do kasowania wpisów.';
+            feedback.className = 'form-text text-danger';
+            return;
+        }
+
+        var parts = [];
+        if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+        if (e.shiftKey) parts.push('Shift');
+        if (e.altKey) parts.push('Alt');
+
+        var keyName = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+        parts.push(keyName);
+        var combo = parts.join('+');
+
+        // Check uniqueness
+        var conflict = existing.find(function(s) { return s.combo === combo; });
+        if (conflict) {
+            feedback.textContent = 'Skrót "' + combo + '" jest już przypisany do: ' + conflict.nazwa;
+            feedback.className = 'form-text text-danger';
+            return;
+        }
+
+        input.value = combo;
+        feedback.textContent = 'Przypisano: ' + combo;
+        feedback.className = 'form-text text-success';
+    });
+
+    input.addEventListener('focus', function() {
+        this.placeholder = 'Naciśnij kombinację klawiszy...';
+    });
+    input.addEventListener('blur', function() {
+        this.placeholder = 'Kliknij i naciśnij kombinację klawiszy...';
+        if (!input.value) {
+            feedback.textContent = '';
+            feedback.className = 'form-text';
+        }
+    });
+
+    clearBtn.addEventListener('click', function() {
+        input.value = '';
+        feedback.textContent = '';
+        feedback.className = 'form-text';
+    });
+})();
+</script>

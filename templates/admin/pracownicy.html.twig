@@ -1,0 +1,296 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Pracownicy — Panel planera{% endblock %}
+{% block panel_heading %}Przypisania pracowników do departamentów{% endblock %}
+
+{% block panel_content %}
+{% if departamenty is empty %}
+    <div class="empty">
+        <p class="empty-title">Brak departamentów</p>
+        <p class="empty-subtitle text-secondary">Najpierw dodaj departamenty, aby móc przypisywać pracowników.</p>
+        <div class="empty-action">
+            <a href="{{ path('departament_new') }}" class="btn btn-primary">Dodaj departament</a>
+        </div>
+    </div>
+{% elseif users is empty %}
+    <div class="empty">
+        <p class="empty-title">Brak użytkowników</p>
+        <p class="empty-subtitle text-secondary">W systemie nie ma użytkowników do przypisania.</p>
+    </div>
+{% else %}
+    <form method="post" action="{{ path('planer_admin_pracownicy_sync') }}">
+
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="input-icon" style="max-width:320px;">
+                <span class="input-icon-addon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/>
+                        <path d="M21 21l-6 -6"/></svg>
+                </span>
+                <input type="text" class="form-control" id="user-search" placeholder="Szukaj pracownika..." autocomplete="off">
+            </div>
+            <div class="ms-auto d-flex gap-2 text-secondary" style="font-size:.8rem;">
+                <span class="d-inline-flex align-items-center gap-1"><span class="legend-dot legend-dot-szef"></span> Szef</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="legend-dot legend-dot-glowny"></span> Główny</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="legend-dot legend-dot-ukryty"></span> Ukryty</span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-vcenter">
+                <thead>
+                    <tr>
+                        <th style="width:200px;">Pracownik</th>
+                        <th style="width:220px;">Adres</th>
+                        <th>Departamenty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    {% set ua = assignments[user.id] | default({}) %}
+                    <tr class="user-row" data-name="{{ user.fullName|lower }}">
+                        <td class="fw-bold">{{ user.fullName }}</td>
+                        <td>
+                            <textarea class="form-control form-control-sm" name="adres[{{ user.id }}]" rows="2" placeholder="Adres pracownika..." style="font-size:.78rem;resize:vertical;">{{ user.adres }}</textarea>
+                        </td>
+                        <td>
+                            <div class="ms" data-user="{{ user.id }}">
+                                {# ── trigger z tagami ── #}
+                                <div class="ms-trigger form-control d-flex align-items-center flex-wrap gap-1"
+                                     data-user="{{ user.id }}">
+                                    {% for dept in departamenty %}
+                                    {% set ud = ua[dept.id] | default(null) %}
+                                    {% if ud %}
+                                    <span class="tag dept-tag {{ ud.czyGlowny ? 'tag-glowny' : '' }} {{ ud.czySzef ? 'tag-szef' : '' }} {{ ud.czyUkryty ? 'tag-ukryty' : '' }}"
+                                          data-dept="{{ dept.id }}" data-user="{{ user.id }}">
+                                        {% if ud.czyGlowny %}&#9679; {% endif %}{{ dept.nazwa }}{% if ud.czySzef %} &#9733;{% endif %}{% if ud.czyUkryty %} &#128065;{% endif %}
+                                    </span>
+                                    {% endif %}
+                                    {% endfor %}
+                                    <span class="ms-ph text-secondary {{ ua|length ? 'd-none' : '' }}"
+                                          data-user="{{ user.id }}">Wybierz departamenty...</span>
+                                </div>
+                                {# ── dropdown menu ── #}
+                                <div class="ms-menu" data-user="{{ user.id }}">
+                                    <div class="ms-menu-head">
+                                        <span class="text-secondary" style="font-size:.75rem;">Przypisz</span>
+                                        <span class="text-secondary ms-auto" style="font-size:.75rem;">Szef</span>
+                                        <span class="text-secondary ms-3" style="font-size:.75rem;">Główny</span>
+                                        <span class="text-secondary ms-3" style="font-size:.75rem;">Ukryty</span>
+                                    </div>
+                                    {% for dept in departamenty %}
+                                    {% set ud = ua[dept.id] | default(null) %}
+                                    <div class="ms-item">
+                                        <label class="form-check m-0 flex-fill d-flex align-items-center">
+                                            <input type="checkbox"
+                                                   class="form-check-input me-2 dept-cb"
+                                                   name="assign[{{ user.id }}][]"
+                                                   value="{{ dept.id }}"
+                                                   data-user="{{ user.id }}"
+                                                   data-dept="{{ dept.id }}"
+                                                   data-nazwa="{{ dept.nazwa }}"
+                                                   {{ ud ? 'checked' : '' }}>
+                                            <span>{{ dept.nazwa }}</span>
+                                        </label>
+                                        <label class="form-check m-0 ms-3 opt-label {{ ud ? '' : 'd-none' }}"
+                                               data-user="{{ user.id }}" data-dept="{{ dept.id }}" data-role="szef">
+                                            <input type="checkbox"
+                                                   class="form-check-input szef-cb"
+                                                   name="szef[{{ user.id }}][]"
+                                                   value="{{ dept.id }}"
+                                                   data-user="{{ user.id }}"
+                                                   data-dept="{{ dept.id }}"
+                                                   {{ ud and ud.czySzef ? 'checked' : '' }}>
+                                        </label>
+                                        <label class="form-check m-0 ms-3 opt-label {{ ud ? '' : 'd-none' }}"
+                                               data-user="{{ user.id }}" data-dept="{{ dept.id }}" data-role="glowny">
+                                            <input type="radio"
+                                                   class="form-check-input glowny-radio"
+                                                   name="glowny[{{ user.id }}]"
+                                                   value="{{ dept.id }}"
+                                                   data-user="{{ user.id }}"
+                                                   data-dept="{{ dept.id }}"
+                                                   {{ ud and ud.czyGlowny ? 'checked' : '' }}>
+                                        </label>
+                                        <label class="form-check m-0 ms-3 opt-label {{ ud ? '' : 'd-none' }}"
+                                               data-user="{{ user.id }}" data-dept="{{ dept.id }}" data-role="ukryty">
+                                            <input type="checkbox"
+                                                   class="form-check-input ukryty-cb"
+                                                   name="ukryty[{{ user.id }}][]"
+                                                   value="{{ dept.id }}"
+                                                   data-user="{{ user.id }}"
+                                                   data-dept="{{ dept.id }}"
+                                                   {{ ud and ud.czyUkryty ? 'checked' : '' }}>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3 d-flex align-items-center gap-3">
+            <button type="submit" class="btn btn-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24"
+                     stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
+                    <path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+                    <path d="M14 4l0 4l-6 0l0 -4"/></svg>
+                Zapisz przypisania
+            </button>
+            <span class="text-secondary">Zmiany zostaną zapisane po kliknięciu przycisku.</span>
+        </div>
+    </form>
+
+    <style>
+    .ms { position: relative; }
+    .ms-trigger {
+        min-height: 2.25rem; cursor: pointer; background: #fff;
+        border: 1px solid #d9dbde; border-radius: 4px; padding: .25rem .5rem;
+    }
+    .ms-trigger:hover { border-color: #90b5e2; }
+    .ms-menu {
+        display: none; position: absolute; z-index: 100; top: 100%; left: 0;
+        min-width: 100%; width: max-content;
+        background: #fff; border: 1px solid #d9dbde; border-top: 0;
+        border-radius: 0 0 4px 4px; box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        max-height: 280px; overflow-y: auto;
+    }
+    .ms.open .ms-menu { display: block; }
+    .ms.open .ms-trigger { border-radius: 4px 4px 0 0; border-color: #90b5e2; }
+    .ms-menu-head {
+        display: flex; align-items: center; padding: .3rem .65rem;
+        border-bottom: 2px solid #e6e8eb; background: #f8f9fa;
+    }
+    .ms-item {
+        display: flex; align-items: center; padding: .4rem .65rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .ms-item:last-child { border-bottom: 0; }
+    .ms-item:hover { background: #f1f5f9; }
+    .opt-label { white-space: nowrap; }
+
+    /* tagi */
+    .dept-tag { font-size: .75rem; }
+    .tag-szef { background: #fff3cd; color: #856404; border-color: #ffc107; }
+    .tag-glowny { background: #d1ecf1; color: #0c5460; border-color: #17a2b8; font-weight: 600; }
+    .tag-szef.tag-glowny { background: #c3e6cb; color: #155724; border-color: #28a745; }
+    .tag-ukryty { opacity: 0.6; text-decoration: line-through; }
+
+    /* legenda */
+    .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+    .legend-dot-szef { background: #ffc107; }
+    .legend-dot-glowny { background: #17a2b8; }
+    .legend-dot-ukryty { background: #adb5bd; }
+    </style>
+
+    <script>
+    document.addEventListener('turbo:load', function() {
+
+        /* === search === */
+        document.getElementById('user-search').addEventListener('input', function() {
+            var q = this.value.toLowerCase().trim();
+            document.querySelectorAll('.user-row').forEach(function(r) {
+                r.style.display = (!q || r.dataset.name.indexOf(q) !== -1) ? '' : 'none';
+            });
+        });
+
+        /* === open / close === */
+        document.querySelectorAll('.ms-trigger').forEach(function(t) {
+            t.addEventListener('click', function(e) {
+                if (e.target.closest('.dept-tag')) return;
+                var ms = this.closest('.ms');
+                closeAll(ms);
+                ms.classList.toggle('open');
+            });
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.ms')) closeAll();
+        });
+        function closeAll(except) {
+            document.querySelectorAll('.ms.open').forEach(function(m) {
+                if (m !== except) m.classList.remove('open');
+            });
+        }
+
+        /* === department toggle === */
+        document.querySelectorAll('.dept-cb').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                var uid = this.dataset.user, did = this.dataset.dept, nazwa = this.dataset.nazwa;
+                var trigger = document.querySelector('.ms-trigger[data-user="' + uid + '"]');
+                var labels = document.querySelectorAll('.opt-label[data-user="' + uid + '"][data-dept="' + did + '"]');
+                var szefCb = document.querySelector('.szef-cb[data-user="' + uid + '"][data-dept="' + did + '"]');
+                var glownyR = document.querySelector('.glowny-radio[data-user="' + uid + '"][data-dept="' + did + '"]');
+                var ukrytyCb = document.querySelector('.ukryty-cb[data-user="' + uid + '"][data-dept="' + did + '"]');
+
+                if (this.checked) {
+                    var tag = document.createElement('span');
+                    tag.className = 'tag dept-tag';
+                    tag.dataset.dept = did;
+                    tag.dataset.user = uid;
+                    tag.textContent = nazwa;
+                    trigger.insertBefore(tag, trigger.querySelector('.ms-ph'));
+                    labels.forEach(function(l) { l.classList.remove('d-none'); });
+                } else {
+                    var tag = trigger.querySelector('.dept-tag[data-dept="' + did + '"][data-user="' + uid + '"]');
+                    if (tag) tag.remove();
+                    labels.forEach(function(l) { l.classList.add('d-none'); });
+                    szefCb.checked = false;
+                    if (glownyR.checked) glownyR.checked = false;
+                    ukrytyCb.checked = false;
+                }
+
+                var ph = trigger.querySelector('.ms-ph');
+                ph.classList.toggle('d-none', trigger.querySelectorAll('.dept-tag').length > 0);
+            });
+        });
+
+        /* === szef toggle → update tag === */
+        document.querySelectorAll('.szef-cb').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                refreshTag(this.dataset.user, this.dataset.dept);
+            });
+        });
+
+        /* === główny radio → update tags === */
+        document.querySelectorAll('.glowny-radio').forEach(function(r) {
+            r.addEventListener('change', function() {
+                var uid = this.dataset.user;
+                document.querySelectorAll('.dept-tag[data-user="' + uid + '"]').forEach(function(tag) {
+                    refreshTag(uid, tag.dataset.dept);
+                });
+            });
+        });
+
+        /* === ukryty toggle → update tag === */
+        document.querySelectorAll('.ukryty-cb').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                refreshTag(this.dataset.user, this.dataset.dept);
+            });
+        });
+
+        function refreshTag(uid, did) {
+            var tag = document.querySelector('.dept-tag[data-user="' + uid + '"][data-dept="' + did + '"]');
+            if (!tag) return;
+            var szef = document.querySelector('.szef-cb[data-user="' + uid + '"][data-dept="' + did + '"]');
+            var glowny = document.querySelector('.glowny-radio[data-user="' + uid + '"][data-dept="' + did + '"]');
+            var ukryty = document.querySelector('.ukryty-cb[data-user="' + uid + '"][data-dept="' + did + '"]');
+            var nazwa = document.querySelector('.dept-cb[data-user="' + uid + '"][data-dept="' + did + '"]').dataset.nazwa;
+            var isSzef = szef && szef.checked;
+            var isGlowny = glowny && glowny.checked;
+            var isUkryty = ukryty && ukryty.checked;
+
+            tag.className = 'tag dept-tag' + (isSzef ? ' tag-szef' : '') + (isGlowny ? ' tag-glowny' : '') + (isUkryty ? ' tag-ukryty' : '');
+            tag.textContent = (isGlowny ? '\u25cf ' : '') + nazwa + (isSzef ? ' \u2733' : '') + (isUkryty ? ' \uD83D\uDC41' : '');
+        }
+    });
+    </script>
+{% endif %}
+{% endblock %}

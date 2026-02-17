@@ -1,0 +1,19 @@
+{
+    "name": "planer/planer-bundle",
+    "description": "Grafik pracy (planer zmianowy) — Symfony Bundle",
+    "type": "symfony-bundle",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Planer\\PlanerBundle\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.2",
+        "symfony/framework-bundle": "^7.0",
+        "doctrine/orm": "^3.0",
+        "doctrine/doctrine-bundle": "^3.0",
+        "symfony/security-bundle": "^7.0",
+        "twig/twig": "^3.0"
+    }
+}

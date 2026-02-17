@@ -1,0 +1,98 @@
+{# Universal form fields based on polaFormularza array #}
+{% if 'typ_podania' in polaFormularza or 'rodzaj_urlopu' in polaFormularza %}
+<div class="row mb-3">
+    {% if 'typ_podania' in polaFormularza %}
+    <div class="col-md-3">
+        <label class="form-label required" for="typ_podania_id">Typ podania</label>
+        <select class="form-select form-select-sm" id="typ_podania_id" name="typ_podania_id" required>
+            {% for typ in typyPodania|default([]) %}
+                <option value="{{ typ.id }}"{{ loop.first ? ' selected' : '' }}>{{ typ.nazwa }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    {% if 'rodzaj_urlopu' in polaFormularza %}
+    <div class="col-md-3">
+        <label class="form-label required" for="rodzaj_urlopu_id">Rodzaj urlopu</label>
+        <select class="form-select form-select-sm" id="rodzaj_urlopu_id" name="rodzaj_urlopu_id" required>
+            {% for rodzaj in rodzajeUrlopu|default([]) %}
+                <option value="{{ rodzaj.id }}"{{ loop.first ? ' selected' : '' }}>{{ rodzaj.nazwa }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    {% if 'zastepca' in polaFormularza %}
+    <div class="col-md-3">
+        <label class="form-label required" for="zastepca">Zastępca</label>
+        <select class="form-select form-select-sm" id="zastepca" name="zastepca" required>
+            <option value="">— wybierz —</option>
+            {% for w in wspolpracownicy|default([]) %}
+                <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    {% if 'telefon' in polaFormularza %}
+    <div class="col-md-3">
+        <label class="form-label required" for="telefon">Telefon kontaktowy</label>
+        <input type="text" class="form-control form-control-sm" id="telefon" name="telefon" required placeholder="np. 600 123 456">
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if 'zastepca' in polaFormularza and 'typ_podania' not in polaFormularza and 'rodzaj_urlopu' not in polaFormularza %}
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label required" for="zastepca">Zastępca</label>
+        <select class="form-select form-select-sm" id="zastepca" name="zastepca" required>
+            <option value="">— wybierz —</option>
+            {% for w in wspolpracownicy|default([]) %}
+                <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if 'telefon' in polaFormularza %}
+    <div class="col-md-4">
+        <label class="form-label required" for="telefon">Telefon kontaktowy</label>
+        <input type="text" class="form-control form-control-sm" id="telefon" name="telefon" required placeholder="np. 600 123 456">
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if 'telefon' in polaFormularza and 'zastepca' not in polaFormularza and 'typ_podania' not in polaFormularza %}
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label required" for="telefon">Telefon kontaktowy</label>
+        <input type="text" class="form-control form-control-sm" id="telefon" name="telefon" required placeholder="np. 600 123 456">
+    </div>
+</div>
+{% endif %}
+
+{% if 'uzasadnienie' in polaFormularza %}
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label class="form-label" for="uzasadnienie">Uzasadnienie</label>
+        <input type="text" class="form-control form-control-sm" id="uzasadnienie" name="uzasadnienie" placeholder="Opcjonalnie" value="">
+    </div>
+</div>
+{% endif %}
+
+{% if 'podpis' in polaFormularza %}
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label" for="podpis">Podpis na wydruku</label>
+        <input type="text" class="form-control form-control-sm" id="podpis" name="podpis" placeholder="Opcjonalnie" value="">
+    </div>
+</div>
+{% endif %}
+
+{% if 'adres' in polaFormularza and editAdres is defined and editAdres %}
+    <div class="mb-3">
+        <label class="form-label" for="adres">Adres zamieszkania</label>
+        <input type="text" class="form-control form-control-sm" id="adres" name="adres"
+               placeholder="np. ul. Przykładowa 1, 00-001 Warszawa" value="{{ user.adres }}">
+        <small class="form-hint">Adres zostanie zapisany w Twoim profilu i użyty w podaniu.</small>
+    </div>
+{% endif %}

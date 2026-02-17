@@ -1,0 +1,14 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Edytuj szablon — Panel planera{% endblock %}
+{% block panel_heading %}Edytuj szablon: {{ szablon.nazwa }}{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    {% include '@Planer/admin/szablon/_form_fields.html.twig' %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Zapisz</button>
+        <a href="{{ path('planer_admin_szablony') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Słowniki — Panel planera{% endblock %}
+{% block panel_heading %}Słowniki{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">Typy podania</h3>
+            <a href="{{ path('planer_admin_typ_podania_new') }}" class="btn btn-sm btn-success">+ Nowy typ</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:60px">Poz.</th>
+                        <th>Nazwa</th>
+                        <th class="text-center" style="width:140px">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for typ in typyPodania %}
+                    <tr>
+                        <td class="text-center">{{ typ.kolejnosc }}</td>
+                        <td>{{ typ.nazwa }}</td>
+                        <td class="text-center">
+                            <a href="{{ path('planer_admin_typ_podania_edit', {id: typ.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                            <form method="post" action="{{ path('planer_admin_typ_podania_delete', {id: typ.id}) }}" class="d-inline" onsubmit="return confirm('Usunąć ten typ podania?')">
+                                <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">Brak typów podania.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">Rodzaje urlopu</h3>
+            <a href="{{ path('planer_admin_rodzaj_urlopu_new') }}" class="btn btn-sm btn-success">+ Nowy rodzaj</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:60px">Poz.</th>
+                        <th>Nazwa</th>
+                        <th class="text-center" style="width:140px">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rodzaj in rodzajeUrlopu %}
+                    <tr>
+                        <td class="text-center">{{ rodzaj.kolejnosc }}</td>
+                        <td>{{ rodzaj.nazwa }}</td>
+                        <td class="text-center">
+                            <a href="{{ path('planer_admin_rodzaj_urlopu_edit', {id: rodzaj.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                            <form method="post" action="{{ path('planer_admin_rodzaj_urlopu_delete', {id: rodzaj.id}) }}" class="d-inline" onsubmit="return confirm('Usunąć ten rodzaj urlopu?')">
+                                <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">Brak rodzajów urlopu.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

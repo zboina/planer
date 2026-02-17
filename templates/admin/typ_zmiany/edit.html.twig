@@ -1,0 +1,14 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Edycja: {{ typ.nazwa }} — Panel planera{% endblock %}
+{% block panel_heading %}Edycja: {{ typ.nazwa }}{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    {% include '@Planer/admin/typ_zmiany/_form_fields.html.twig' %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Zapisz</button>
+        <a href="{{ path('typ_zmiany_index') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

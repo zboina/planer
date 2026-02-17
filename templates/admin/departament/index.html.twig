@@ -1,0 +1,44 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Departamenty — Panel planera{% endblock %}
+{% block panel_heading %}Departamenty{% endblock %}
+
+{% block panel_actions %}
+    <a href="{{ path('departament_new') }}" class="btn btn-success">+ Nowy departament</a>
+{% endblock %}
+
+{% block panel_content %}
+<div class="table-responsive">
+    <table class="table table-vcenter card-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nazwa</th>
+                <th>Skrót</th>
+                <th>Kolejność</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in departamenty %}
+            <tr>
+                <td>{{ d.id }}</td>
+                <td>{{ d.nazwa }}</td>
+                <td><span class="badge bg-blue-lt">{{ d.skrot }}</span></td>
+                <td>{{ d.kolejnosc }}</td>
+                <td>
+                    <a href="{{ path('departament_edit', {id: d.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                    <form method="post" action="{{ path('departament_delete', {id: d.id}) }}" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć ten departament?')">
+                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">Brak departamentów.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Typy zmian — Panel planera{% endblock %}
+{% block panel_heading %}Typy zmian{% endblock %}
+
+{% block panel_actions %}
+    <a href="{{ path('typ_zmiany_new') }}" class="btn btn-success">+ Nowy typ zmiany</a>
+{% endblock %}
+
+{% block panel_content %}
+<div class="table-responsive">
+    <table class="table table-vcenter card-table" id="typy-zmian-table">
+        <thead>
+            <tr>
+                <th style="width:32px"></th>
+                <th>Kolor</th>
+                <th>Skrót</th>
+                <th>Nazwa</th>
+                <th>Godziny</th>
+                <th>Działy</th>
+                <th style="width:70px">Aktywny</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody id="typy-zmian-body">
+            {% for typ in typy %}
+            <tr data-id="{{ typ.id }}" class="{{ not typ.aktywny ? 'typ-inactive' : '' }}">
+                <td class="drag-handle" style="cursor:grab; color:#adb5bd; text-align:center;" title="Przeciągnij aby zmienić kolejność">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+                </td>
+                <td>
+                    <span style="display:inline-block; width:24px; height:24px; border-radius:4px; background-color:{{ typ.kolor }};" title="{{ typ.kolor }}"></span>
+                </td>
+                <td><strong>{{ typ.skrot }}</strong></td>
+                <td>{{ typ.nazwa }}</td>
+                <td>
+                    {% if typ.godzinyOd %}
+                        {{ typ.godzinyOd }} - {{ typ.godzinyDo }}
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if typ.departamenty is empty %}
+                        <span class="text-muted">Wszystkie</span>
+                    {% else %}
+                        {% for d in typ.departamenty %}<span class="badge bg-azure-lt me-1">{{ d.skrot }}</span>{% endfor %}
+                    {% endif %}
+                </td>
+                <td>
+                    <label class="form-check form-switch mb-0">
+                        <input class="form-check-input toggle-aktywny" type="checkbox" data-id="{{ typ.id }}" {{ typ.aktywny ? 'checked' : '' }}>
+                    </label>
+                </td>
+                <td>
+                    <a href="{{ path('typ_zmiany_edit', {id: typ.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                    <form method="post" action="{{ path('typ_zmiany_delete', {id: typ.id}) }}" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć ten typ zmiany?')">
+                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">Brak typów zmian.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    #typy-zmian-body tr.dragging { opacity: 0.4; }
+    #typy-zmian-body tr.drag-over { box-shadow: 0 -2px 0 0 #206bc4; }
+    #typy-zmian-body tr.typ-inactive { opacity: 0.45; }
+    .drag-handle:active { cursor: grabbing; }
+</style>
+
+<script>
+(function() {
+    var tbody = document.getElementById('typy-zmian-body');
+    if (!tbody) return;
+
+    var dragRow = null;
+
+    tbody.addEventListener('dragstart', function(e) {
+        var tr = e.target.closest('tr[data-id]');
+        if (!tr) return;
+        dragRow = tr;
+        tr.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tr.dataset.id);
+    });
+
+    tbody.addEventListener('dragend', function(e) {
+        var tr = e.target.closest('tr[data-id]');
+        if (tr) tr.classList.remove('dragging');
+        clearOver();
+        dragRow = null;
+    });
+
+    tbody.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        var tr = e.target.closest('tr[data-id]');
+        if (!tr || tr === dragRow) return;
+        clearOver();
+        tr.classList.add('drag-over');
+    });
+
+    tbody.addEventListener('dragleave', function(e) {
+        var tr = e.target.closest('tr[data-id]');
+        if (tr) tr.classList.remove('drag-over');
+    });
+
+    tbody.addEventListener('drop', function(e) {
+        e.preventDefault();
+        clearOver();
+        var tr = e.target.closest('tr[data-id]');
+        if (!tr || !dragRow || tr === dragRow) return;
+
+        var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+        var dragIdx = rows.indexOf(dragRow);
+        var dropIdx = rows.indexOf(tr);
+        if (dragIdx < dropIdx) {
+            tr.after(dragRow);
+        } else {
+            tr.before(dragRow);
+        }
+        saveOrder();
+    });
+
+    // Draggable only via handle
+    tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+        tr.setAttribute('draggable', 'true');
+        tr.addEventListener('dragstart', function(e) {
+            if (!e.target.closest('.drag-handle') && e.target.closest('td') && !e.target.closest('td').classList.contains('drag-handle')) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Toggle aktywny
+    tbody.querySelectorAll('.toggle-aktywny').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var id = this.dataset.id;
+            var aktywny = this.checked;
+            var tr = this.closest('tr');
+            tr.classList.toggle('typ-inactive', !aktywny);
+            fetch('{{ path("typ_zmiany_toggle") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: parseInt(id), aktywny: aktywny })
+            });
+        });
+    });
+
+    function clearOver() {
+        tbody.querySelectorAll('.drag-over').forEach(function(el) {
+            el.classList.remove('drag-over');
+        });
+    }
+
+    function saveOrder() {
+        var ids = [];
+        tbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+            ids.push(parseInt(tr.dataset.id));
+        });
+        fetch('{{ path("typ_zmiany_reorder") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+        });
+    }
+})();
+</script>
+{% endblock %}

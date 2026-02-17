@@ -1,0 +1,21 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Nowy dzień wolny — Panel planera{% endblock %}
+{% block panel_heading %}Nowy dzień wolny{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label required" for="data">Data</label>
+        <input type="date" class="form-control" id="data" name="data" required style="width:250px;">
+    </div>
+    <div class="mb-3">
+        <label class="form-label required" for="nazwa">Nazwa / Powód</label>
+        <input type="text" class="form-control" id="nazwa" name="nazwa" required maxlength="100" placeholder="np. Dzień wolny za święto w sobotę">
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Dodaj</button>
+        <a href="{{ path('dzien_wolny_index') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

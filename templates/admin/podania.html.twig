@@ -1,0 +1,86 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Podania i wnioski{% endblock %}
+{% block panel_heading %}Podania i wnioski{% endblock %}
+
+{% block panel_content %}
+{% if podania is empty %}
+    <div class="empty">
+        <p class="empty-title">Brak podań</p>
+        <p class="empty-subtitle text-secondary">Nie złożono jeszcze żadnych podań ani wniosków.</p>
+    </div>
+{% else %}
+    <div class="table-responsive">
+        <table class="table table-vcenter table-bordered table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Pracownik</th>
+                    <th>Departament</th>
+                    <th>Rodzaj</th>
+                    <th>Typ</th>
+                    <th>Rodzaj urlopu</th>
+                    <th class="text-center">Od</th>
+                    <th class="text-center">Do</th>
+                    <th>Zastępca</th>
+                    <th>Telefon</th>
+                    <th class="text-center">Data złożenia</th>
+                    <th class="text-center" style="width: 160px;">Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for podanie in podania %}
+                    {% set szablon = podanie.typZmiany ? podanie.typZmiany.szablonPodania : 'urlop' %}
+                    <tr>
+                        <td class="text-nowrap">{{ podanie.user.fullName }}</td>
+                        <td>{{ podanie.departament.nazwa }}</td>
+                        <td>
+                            {% if szablon == 'praca_zdalna' %}
+                                <span class="badge bg-cyan-lt">Praca zdalna</span>
+                            {% elseif szablon == 'nadgodziny' %}
+                                <span class="badge bg-orange-lt">Nadgodziny</span>
+                            {% else %}
+                                <span class="badge bg-blue-lt">Urlop</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ podanie.typPodania ? podanie.typPodania.nazwa : '—' }}</td>
+                        <td>{{ podanie.rodzajUrlopu ? podanie.rodzajUrlopu.nazwa : '—' }}</td>
+                        <td class="text-center">{{ podanie.dataOd|date('d.m.Y') }}</td>
+                        <td class="text-center">{{ podanie.dataDo|date('d.m.Y') }}</td>
+                        <td>{{ podanie.zastepca ?: '—' }}</td>
+                        <td>{{ podanie.telefon ?: '—' }}</td>
+                        <td class="text-center text-secondary">{{ podanie.createdAt|date('d.m.Y H:i') }}</td>
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ path('planer_admin_podanie_pdf', {id: podanie.id}) }}" class="btn btn-sm btn-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M12 17v-14"/>
+                                        <path d="M9 14l3 3l3 -3"/>
+                                        <path d="M5 21h14"/>
+                                    </svg>
+                                    PDF
+                                </a>
+                                <form method="post" action="{{ path('planer_admin_podanie_delete', {id: podanie.id}) }}"
+                                      onsubmit="return confirm('Usunąć to podanie?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M4 7l16 0"/>
+                                            <path d="M10 11l0 6"/>
+                                            <path d="M14 11l0 6"/>
+                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

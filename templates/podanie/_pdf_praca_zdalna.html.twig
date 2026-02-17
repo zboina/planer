@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { margin: 1.5cm 2cm 1cm 2cm; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.3;
+            color: #000;
+        }
+        .date-line {
+            text-align: right;
+            margin-bottom: 14px;
+            font-size: 9.5pt;
+        }
+        .employee-block {
+            margin-bottom: 4px;
+        }
+        .dotted-field {
+            border-bottom: 1px dotted #666;
+            display: inline-block;
+            min-width: 220px;
+            padding-bottom: 1px;
+            font-size: 9.5pt;
+            letter-spacing: 0.5pt;
+        }
+        .field-caption {
+            font-size: 7pt;
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 4px;
+        }
+        .recipient-block {
+            text-align: right;
+            margin-top: 6px;
+            margin-bottom: 16px;
+        }
+        .recipient-name {
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        .recipient-title {
+            font-size: 9.5pt;
+        }
+        h1 {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: bold;
+            text-decoration: underline;
+            margin: 0 0 10px 0;
+        }
+        p {
+            margin: 5px 0;
+            text-align: justify;
+        }
+        .dates-line {
+            margin: 5px 0;
+        }
+        .dates-line .dotted-val {
+            border-bottom: 1px dotted #666;
+            display: inline-block;
+            min-width: 120px;
+            text-align: center;
+            padding-bottom: 1px;
+        }
+        ol {
+            margin: 2px 0 2px 20px;
+            padding: 0;
+        }
+        ol li {
+            margin-bottom: 1px;
+        }
+        .indent {
+            text-indent: 0;
+            margin-left: 20px;
+        }
+        .sig-block {
+            text-align: right;
+            margin-top: 18px;
+        }
+        .sig-line {
+            border-bottom: 1px dotted #666;
+            display: inline-block;
+            width: 240px;
+            height: 14px;
+        }
+        .sig-caption {
+            font-size: 7pt;
+            color: #666;
+            margin-top: 1px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+<div class="date-line">Warszawa, dnia .....<strong>{{ dataZlozenia|date('d.m.Y') }}</strong>.....</div>
+
+<div class="employee-block">
+    <div><span class="dotted-field">{{ user.fullName }}</span></div>
+    <div class="field-caption">(imię i nazwisko pracownika)</div>
+    {% if user.adres %}
+        {% for line in user.adres|split("\n") %}
+            <div><span class="dotted-field">{{ line }}</span></div>
+        {% endfor %}
+    {% else %}
+        <div><span class="dotted-field">&nbsp;</span></div>
+    {% endif %}
+    <div class="field-caption">(adres zamieszkania)</div>
+</div>
+
+<div class="recipient-block">
+    <div class="recipient-name">{{ firmaNazwa }}</div>
+    {% for line in firmaAdres|split("\n") %}
+        <div class="recipient-title">{{ line }}</div>
+    {% endfor %}
+</div>
+
+<h1>Wniosek o wykonywanie okazjonalnej pracy zdalnej</h1>
+
+<p>
+    Wnoszę o umożliwienie mi w miarę możliwości wykonywania okazjonalnej pracy zdalnej w miejscu
+    mojego zamieszkania
+</p>
+
+<div class="dates-line">
+    w dniach od <span class="dotted-val"><strong>{{ dataOd|date('d.m.Y') }}</strong></span>
+    do <span class="dotted-val"><strong>{{ dataDo|date('d.m.Y') }}</strong></span>.
+</div>
+
+<p>
+    Oświadczam, że na stanowisku pracy zdalnej są zapewnione bezpieczne i higieniczne warunki.
+</p>
+
+<p>Oświadczam, że zapoznałem się z przygotowaną przez pracodawcę:</p>
+<ol>
+    <li>oceną ryzyka zawodowego,</li>
+    <li>informacją zawierającą zasady bezpiecznego i higienicznego wykonywania pracy zdalnej,</li>
+    <li>informacją określającą procedury ochrony danych osobowych,</li>
+</ol>
+<p class="indent">
+    i zobowiązuję się do przestrzegania informacji, procedur, wskazówek i wniosków wynikających z
+    tych dokumentów.
+</p>
+
+<p>
+    Zasady kontroli wykonywania pracy zdalnej – kontrola w zakresie bezpieczeństwa i higieny pracy lub
+    kontrola przestrzegania wymogów w zakresie bezpieczeństwa i ochrony informacji, w tym procedur
+    ochrony danych osobowych – ustaliłem z pracodawcą. Potwierdzam wolę ich stosowania w czasie
+    wykonywania okazjonalnej pracy zdalnej.
+</p>
+
+<p>
+    Oświadczam, że jestem świadomy/a, iż pracodawca może w każdym czasie odwołać zgodę na
+    okazjonalną pracę zdalną i polecić mi stawienie się w zakładzie pracy.
+</p>
+
+<p>Proszę o pozytywne rozpatrzenie mojego wniosku.</p>
+
+<div class="sig-block">
+    {% if podpis is defined and podpis %}
+        <span class="dotted-field" style="text-align:center;">{{ podpis }}</span>
+    {% else %}
+        <span class="sig-line"></span>
+    {% endif %}
+    <div class="sig-caption">(czytelny podpis pracownika)</div>
+</div>
+
+<div class="sig-block">
+    <span class="sig-line"></span>
+    <div class="sig-caption">(podpis bezpośredniego przełożonego)</div>
+</div>
+
+<div class="sig-block">
+    <span class="sig-line"></span>
+    <div class="sig-caption">(podpis pracodawcy)</div>
+</div>
+
+</body>
+</html>

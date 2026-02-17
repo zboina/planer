@@ -1,0 +1,263 @@
+{% extends planer_base_template %}
+
+{% block title %}Pracownicy — {{ dept.nazwa }}{% endblock %}
+{% block page_pretitle %}Grafik pracy{% endblock %}
+{% block page_title %}Pracownicy działu: {{ dept.nazwa }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                {% if dostepneDepts|length > 1 %}
+                    <label class="form-label mb-0 fw-bold">Departament:</label>
+                    <select class="form-select form-select-sm" style="width:auto; min-width:160px;"
+                            onchange="window.location.href='/planer/dzial/pracownicy/'+this.value">
+                        {% for d in dostepneDepts %}
+                            <option value="{{ d.id }}"{{ d.id == dept.id ? ' selected' : '' }}>{{ d.nazwa }} ({{ d.skrot }})</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <h3 class="card-title mb-0">{{ dept.nazwa }}</h3>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ path('grafik_dzial_raport_pdf', {departamentId: dept.id, rok: 'now'|date('Y')}) }}" class="btn btn-sm btn-primary" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2"/>
+                        <path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4"/>
+                        <path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z"/>
+                    </svg>
+                    Raport urlopów PDF
+                </a>
+                <a href="{{ path('grafik_index') }}" class="btn btn-sm btn-outline-secondary">Powrót do grafiku</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if userDepartamenty is empty %}
+            <div class="empty py-5">
+                <p class="empty-title">Brak pracowników</p>
+                <p class="empty-subtitle text-secondary">W tym departamencie nie ma przypisanych pracowników.</p>
+            </div>
+        {% else %}
+            <form method="post" action="{{ path('grafik_dzial_pracownicy_save', {departamentId: dept.id}) }}">
+                <div class="table-responsive">
+                    <table class="table table-vcenter table-bordered table-hover mb-0" id="sortable-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px;" class="text-center"></th>
+                                <th style="width: 200px;">Pracownik</th>
+                                <th style="width: 280px;">Adres</th>
+                                <th style="width: 120px;" class="text-center">Dni urlopu / rok</th>
+                                <th class="text-center" style="width: 80px;">Główny</th>
+                                <th class="text-center" style="width: 80px;">Szef</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sortable-body">
+                            {% for ud in userDepartamenty %}
+                                {% set u = ud.user %}
+                                {% set isGlowny = ud.czyGlowny %}
+                                <tr data-user-id="{{ u.id }}" class="{{ not isGlowny ? 'row-dodatkowy' : '' }}">
+                                    <td class="text-center drag-handle" style="cursor: grab;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="20" height="20"
+                                             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                                             stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M4 6l16 0"/><path d="M4 12l16 0"/><path d="M4 18l16 0"/>
+                                        </svg>
+                                        <input type="hidden" name="kolejnosc[{{ u.id }}]" class="kolejnosc-input" value="{{ loop.index0 }}">
+                                    </td>
+                                    <td class="fw-bold text-nowrap">
+                                        {% if ud.czySzef %}<span style="color: #f59e0b;" title="Szef działu">&#9733; </span>{% endif %}
+                                        {{ u.fullName }}
+                                        {% if not isGlowny %}<span class="text-secondary" style="font-size:.7rem; font-weight:normal;">(dodatkowy)</span>{% endif %}
+                                    </td>
+                                    {% if isGlowny %}
+                                        <td>
+                                            <textarea class="form-control form-control-sm" name="adres[{{ u.id }}]" rows="2"
+                                                      placeholder="Adres pracownika..."
+                                                      style="font-size:.78rem; resize:vertical;">{{ u.adres }}</textarea>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center" name="urlop[{{ u.id }}]"
+                                                   value="{{ u.iloscDniUrlopuWRoku }}" min="1" max="100" style="width: 80px; margin: 0 auto;">
+                                        </td>
+                                    {% else %}
+                                        <td class="text-secondary" style="font-size:.78rem;">{{ u.adres ?: '—' }}</td>
+                                        <td class="text-center text-secondary">{{ u.iloscDniUrlopuWRoku }}</td>
+                                    {% endif %}
+                                    <td class="text-center">
+                                        {% if isGlowny %}
+                                            <span class="badge bg-cyan-lt">Tak</span>
+                                        {% else %}
+                                            <span class="text-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if ud.czySzef %}
+                                            <span class="badge bg-yellow-lt">Tak</span>
+                                        {% else %}
+                                            <span class="text-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="submit" class="btn btn-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24"
+                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/>
+                                <path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
+                                <path d="M14 4l0 4l-6 0l0 -4"/>
+                            </svg>
+                            Zapisz zmiany
+                        </button>
+                        <span class="text-secondary" style="font-size: .85rem;">Przeciągnij wiersze aby zmienić kolejność. Zmiany zostaną zapisane po kliknięciu przycisku.</span>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .drag-handle:active { cursor: grabbing; }
+    #sortable-body tr.dragging { opacity: 0.4; background: #e9ecef; }
+    #sortable-body tr.drag-over-above td { box-shadow: inset 0 2px 0 #206bc4; }
+    #sortable-body tr.drag-over-below td { box-shadow: inset 0 -2px 0 #206bc4; }
+    .row-dodatkowy { background: #f8f9fb; }
+    .row-dodatkowy td { color: #667382; }
+</style>
+
+<script>
+document.addEventListener('turbo:load', function() {
+    var tbody = document.getElementById('sortable-body');
+    if (!tbody) return;
+
+    var dragRow = null;
+
+    function getInsertPosition(targetRow, clientY) {
+        var rect = targetRow.getBoundingClientRect();
+        var mid = rect.top + rect.height / 2;
+        return clientY < mid ? 'above' : 'below';
+    }
+
+    function clearIndicators() {
+        tbody.querySelectorAll('tr').forEach(function(r) {
+            r.classList.remove('drag-over-above', 'drag-over-below');
+        });
+    }
+
+    function insertAtPosition(target, position) {
+        if (!dragRow || target === dragRow) return;
+        if (position === 'above') {
+            tbody.insertBefore(dragRow, target);
+        } else {
+            tbody.insertBefore(dragRow, target.nextSibling);
+        }
+    }
+
+    function updateOrder() {
+        tbody.querySelectorAll('tr').forEach(function(row, idx) {
+            var input = row.querySelector('.kolejnosc-input');
+            if (input) input.value = idx;
+        });
+    }
+
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        var handle = row.querySelector('.drag-handle');
+        if (!handle) return;
+
+        handle.addEventListener('mousedown', function() {
+            row.draggable = true;
+        });
+        handle.addEventListener('mouseup', function() {
+            row.draggable = false;
+        });
+
+        row.addEventListener('dragstart', function(e) {
+            dragRow = row;
+            row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', '');
+        });
+
+        row.addEventListener('dragend', function() {
+            row.classList.remove('dragging');
+            row.draggable = false;
+            dragRow = null;
+            clearIndicators();
+            updateOrder();
+        });
+
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (row === dragRow) return;
+
+            clearIndicators();
+            var pos = getInsertPosition(row, e.clientY);
+            row.classList.add(pos === 'above' ? 'drag-over-above' : 'drag-over-below');
+        });
+
+        row.addEventListener('dragleave', function() {
+            row.classList.remove('drag-over-above', 'drag-over-below');
+        });
+
+        row.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (!dragRow || row === dragRow) return;
+
+            var pos = getInsertPosition(row, e.clientY);
+            insertAtPosition(row, pos);
+            clearIndicators();
+        });
+
+        // Touch support
+        var touchActive = false;
+
+        handle.addEventListener('touchstart', function(e) {
+            dragRow = row;
+            touchActive = true;
+            row.classList.add('dragging');
+            e.preventDefault();
+        }, { passive: false });
+
+        handle.addEventListener('touchmove', function(e) {
+            if (!touchActive) return;
+            e.preventDefault();
+
+            var touch = e.touches[0];
+            var el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!el) return;
+            var targetRow = el.closest('#sortable-body tr');
+
+            clearIndicators();
+
+            if (targetRow && targetRow !== dragRow) {
+                var pos = getInsertPosition(targetRow, touch.clientY);
+                targetRow.classList.add(pos === 'above' ? 'drag-over-above' : 'drag-over-below');
+                insertAtPosition(targetRow, pos);
+            }
+        }, { passive: false });
+
+        handle.addEventListener('touchend', function() {
+            if (!touchActive) return;
+            touchActive = false;
+            row.classList.remove('dragging');
+            clearIndicators();
+            dragRow = null;
+            updateOrder();
+        });
+    });
+});
+</script>
+{% endblock %}

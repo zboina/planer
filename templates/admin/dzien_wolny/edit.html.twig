@@ -1,0 +1,21 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Edycja dnia wolnego — Panel planera{% endblock %}
+{% block panel_heading %}Edycja dnia wolnego{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label required" for="data">Data</label>
+        <input type="date" class="form-control" id="data" name="data" value="{{ dzienWolny.data|date('Y-m-d') }}" required style="width:250px;">
+    </div>
+    <div class="mb-3">
+        <label class="form-label required" for="nazwa">Nazwa / Powód</label>
+        <input type="text" class="form-control" id="nazwa" name="nazwa" value="{{ dzienWolny.nazwa }}" required maxlength="100">
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Zapisz</button>
+        <a href="{{ path('dzien_wolny_index') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

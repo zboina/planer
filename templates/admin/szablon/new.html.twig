@@ -1,0 +1,14 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Nowy szablon — Panel planera{% endblock %}
+{% block panel_heading %}Nowy szablon{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    {% include '@Planer/admin/szablon/_form_fields.html.twig' with {szablon: null} %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Utwórz</button>
+        <a href="{{ path('planer_admin_szablony') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends planer_base_template %}
+
+{% block title %}{{ szablonLabel|default('Podanie') }}{% endblock %}
+{% block page_pretitle %}Grafik pracy{% endblock %}
+{% block page_title %}{{ szablonLabel|default('Podanie') }} — {{ user.fullName }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-body">
+        <form method="post" action="{{ path('grafik_podanie_generate', {userId: user.id, rok: rok}) }}">
+            <input type="hidden" name="typ_zmiany_id" value="{{ typZmianyId|default(0) }}">
+            {# --- Wiersz 1: Daty --- #}
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label required" for="data_od">Data od</label>
+                    <input type="date" class="form-control form-control-sm" id="data_od" name="data_od" value="{{ dataOd }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label required" for="data_do">Data do</label>
+                    <input type="date" class="form-control form-control-sm" id="data_do" name="data_do" value="{{ dataDo }}" required>
+                </div>
+            </div>
+            {# --- Pola specyficzne dla szablonu --- #}
+            {% if polaFormularza is defined and polaFormularza is not null %}
+                {% include '@Planer/podanie/_form_universal.html.twig' %}
+            {% else %}
+                {% include '@Planer/podanie/_form_' ~ szablon ~ '.html.twig' %}
+            {% endif %}
+            {# --- Info + Przyciski --- #}
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="text-secondary" style="font-size:.8rem;">
+                    <strong>{{ user.fullName }}</strong>
+                    {% if dept %} &middot; {{ dept.nazwa }}{% endif %}
+                    {% if (editAdres is not defined or not editAdres) and user.adres %} &middot; {{ user.adres }}{% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                            <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                            <path d="M12 17v-6"/>
+                            <path d="M9.5 14.5l2.5 2.5l2.5 -2.5"/>
+                        </svg>
+                        Złóż {{ szablon == 'urlop' ? 'podanie' : 'wniosek' }}
+                    </button>
+                    <a href="{{ path('grafik_podanie_lista') }}" class="btn btn-secondary btn-sm">Anuluj</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

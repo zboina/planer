@@ -1,0 +1,136 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}{{ szablonLabel|default('Podanie') }}{% endblock %}
+{% block panel_heading %}{{ szablonLabel|default('Podanie') }} — {{ user.fullName }}{% endblock %}
+
+{% block panel_content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post" action="{{ path('planer_admin_podanie_generate', {userId: user.id, rok: rok}) }}">
+            <input type="hidden" name="typ_zmiany_id" value="{{ typZmianyId|default(0) }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label required" for="data_od">Data od</label>
+                    <input type="date" class="form-control" id="data_od" name="data_od" value="{{ dataOd }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label required" for="data_do">Data do</label>
+                    <input type="date" class="form-control" id="data_do" name="data_do" value="{{ dataDo }}" required>
+                </div>
+            </div>
+            {% if polaFormularza is defined and polaFormularza is not null %}
+                {# Universal dynamic fields #}
+                {% if 'typ_podania' in polaFormularza or 'rodzaj_urlopu' in polaFormularza %}
+                <div class="row mb-3">
+                    {% if 'typ_podania' in polaFormularza %}
+                    <div class="col-md-6">
+                        <label class="form-label required" for="typ_podania_id">Typ podania</label>
+                        <select class="form-select" id="typ_podania_id" name="typ_podania_id" required>
+                            {% for typ in typyPodania|default([]) %}
+                                <option value="{{ typ.id }}"{{ loop.first ? ' selected' : '' }}>{{ typ.nazwa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    {% if 'rodzaj_urlopu' in polaFormularza %}
+                    <div class="col-md-6">
+                        <label class="form-label required" for="rodzaj_urlopu_id">Rodzaj urlopu</label>
+                        <select class="form-select" id="rodzaj_urlopu_id" name="rodzaj_urlopu_id" required>
+                            {% for rodzaj in rodzajeUrlopu|default([]) %}
+                                <option value="{{ rodzaj.id }}"{{ loop.first ? ' selected' : '' }}>{{ rodzaj.nazwa }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if 'zastepca' in polaFormularza %}
+                <div class="mb-3">
+                    <label class="form-label required" for="zastepca">Zastępca</label>
+                    <select class="form-select" id="zastepca" name="zastepca" required>
+                        <option value="">— wybierz —</option>
+                        {% for w in wspolpracownicy|default([]) %}
+                            <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% if 'telefon' in polaFormularza %}
+                <div class="mb-3">
+                    <label class="form-label required" for="telefon">Telefon kontaktowy na czas urlopu</label>
+                    <input type="text" class="form-control" id="telefon" name="telefon" required placeholder="np. 600 123 456" value="">
+                </div>
+                {% endif %}
+                {% if 'podpis' in polaFormularza %}
+                <div class="mb-3">
+                    <label class="form-label" for="podpis">Podpis pracownika</label>
+                    <input type="text" class="form-control" id="podpis" name="podpis" placeholder="np. Jan Kowalski" value="">
+                    <small class="form-hint">Jeśli wypełnisz, podpis pojawi się na wydruku podania.</small>
+                </div>
+                {% endif %}
+            {% else %}
+                {# Legacy hardcoded fields #}
+                {% if szablon == 'urlop' %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required" for="typ_podania_id">Typ podania</label>
+                            <select class="form-select" id="typ_podania_id" name="typ_podania_id" required>
+                                {% for typ in typyPodania %}
+                                    <option value="{{ typ.id }}"{{ loop.first ? ' selected' : '' }}>{{ typ.nazwa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label required" for="rodzaj_urlopu_id">Rodzaj urlopu</label>
+                            <select class="form-select" id="rodzaj_urlopu_id" name="rodzaj_urlopu_id" required>
+                                {% for rodzaj in rodzajeUrlopu %}
+                                    <option value="{{ rodzaj.id }}"{{ loop.first ? ' selected' : '' }}>{{ rodzaj.nazwa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required" for="zastepca">Zastępca</label>
+                        <select class="form-select" id="zastepca" name="zastepca" required>
+                            <option value="">— wybierz —</option>
+                            {% for w in wspolpracownicy %}
+                                <option value="{{ w.fullName }}">{{ w.fullName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required" for="telefon">Telefon kontaktowy na czas urlopu</label>
+                        <input type="text" class="form-control" id="telefon" name="telefon" required placeholder="np. 600 123 456" value="">
+                    </div>
+                {% endif %}
+                <div class="mb-3">
+                    <label class="form-label" for="podpis">Podpis pracownika</label>
+                    <input type="text" class="form-control" id="podpis" name="podpis" placeholder="np. Jan Kowalski" value="">
+                    <small class="form-hint">Jeśli wypełnisz, podpis pojawi się na wydruku podania.</small>
+                </div>
+            {% endif %}
+            <div class="mb-3 text-secondary">
+                <small>
+                    Pracownik: <strong>{{ user.fullName }}</strong><br>
+                    Adres: <strong>{{ user.adres ?: '(nie podano — uzupełnij w edycji użytkownika)' }}</strong><br>
+                    {% if dept %}Departament: <strong>{{ dept.nazwa }}</strong>{% endif %}
+                </small>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24"
+                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                        <path d="M12 17v-6"/>
+                        <path d="M9.5 14.5l2.5 2.5l2.5 -2.5"/>
+                    </svg>
+                    Generuj PDF
+                </button>
+                <a href="{{ path('planer_admin_urlopy', {departamentId: dept ? dept.id : null, rok: rok}) }}" class="btn btn-secondary">Anuluj</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

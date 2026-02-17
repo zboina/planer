@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { margin: 1.5cm 2cm; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #000;
+        }
+        .header { width: 100%; margin-bottom: 6px; }
+        .header td { vertical-align: top; font-size: 10pt; }
+        .header .left { text-align: left; width: 50%; }
+        .header .right { text-align: right; width: 50%; }
+        .date-line { text-align: right; margin-bottom: 16px; font-size: 10pt; }
+        h1 { text-align: center; font-size: 13pt; font-weight: bold; margin: 0 0 4px 0; }
+        h2 { text-align: center; font-size: 11pt; font-weight: bold; margin: 0 0 16px 0; }
+        .sig-line { border-bottom: 1px dotted #999; width: 200px; height: 20px; display: inline-block; }
+        .sig-caption { font-size: 7pt; color: #666; margin-top: 1px; }
+        .sig-block { margin-top: 30px; }
+        .sig-block td { width: 33%; vertical-align: top; text-align: center; }
+        .dotted { border-bottom: 1px dotted #999; height: 16px; margin-bottom: 1px; }
+        .caption { text-align: center; font-size: 7pt; color: #666; margin: 1px 0 8px 0; }
+        p { margin: 6px 0; text-align: justify; }
+    </style>
+</head>
+<body>
+
+<table class="header" cellpadding="0" cellspacing="0">
+    <tr>
+        <td class="left">
+            <strong>{{ user.fullName }}</strong><br>
+            {% if user.adres %}{% for line in user.adres|split("\n") %}{{ line }}<br>{% endfor %}{% endif %}
+        </td>
+        <td class="right">
+            <strong>{{ firmaNazwa }}</strong><br>
+            {% for line in firmaAdres|split("\n") %}{{ line }}<br>{% endfor %}
+        </td>
+    </tr>
+</table>
+
+<div class="date-line">DATA: {{ dataZlozenia|date('d-m-Y') }}</div>
+
+<h1>WNIOSEK</h1>
+<h2>O UDZIELENIE CZASU WOLNEGO ZA PRACĘ W GODZINACH NADLICZBOWYCH</h2>
+
+<p>
+    Na podstawie art. 151<sup>2</sup> Kodeksu pracy zwracam się z prośbą o udzielenie mi
+    czasu wolnego od pracy w zamian za pracę w godzinach nadliczbowych
+    w dniach od <strong>{{ dataOd|date('d-m-Y') }}</strong>
+    do <strong>{{ dataDo|date('d-m-Y') }}</strong>.
+</p>
+
+<div class="dotted"></div>
+<div class="caption">(ewentualne uzasadnienie)</div>
+
+{% if podpis is defined and podpis %}
+<div style="text-align: right; font-style: italic; font-size: 11pt; margin-top: 20px;">{{ podpis }}</div>
+{% else %}
+<div style="text-align: right; margin-top: 20px;">
+    <span class="sig-line"></span>
+</div>
+{% endif %}
+<div style="text-align: right;" class="sig-caption">(podpis pracownika)</div>
+
+<table class="sig-block" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td>
+            <p style="margin-top:6px;">Wyrażam zgodę(*) Nie wyrażam zgody(*) na udzielenie czasu wolnego:</p>
+            <div class="sig-line" style="margin-top:18px;"></div><br>
+            <span class="sig-caption">(pieczątka i podpis bezpośredniego przełożonego)</span>
+        </td>
+        <td>
+            <p style="margin-top:6px;">&nbsp;</p>
+            <div class="sig-line" style="margin-top:18px;"></div><br>
+            <span class="sig-caption">(pieczątka i podpis pracodawcy)</span>
+        </td>
+    </tr>
+</table>
+
+<div style="font-size: 7pt; color: #666; margin-top: 16px;">(*) niepotrzebne skreślić</div>
+
+</body>
+</html>

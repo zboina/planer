@@ -1,0 +1,74 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_heading %}Ustawienia{% endblock %}
+
+{% block panel_content %}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible" role="alert">
+            {{ message }}
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
+        </div>
+    {% endfor %}
+
+    <form method="post" action="{{ path('planer_admin_ustawienia_save') }}">
+        <div class="row">
+            <div class="col-lg-6">
+                <h3 class="mb-3">Dane firmy</h3>
+                <p class="text-muted">Używane w nagłówkach PDF podań i raportów urlopowych.</p>
+
+                <div class="mb-3">
+                    <label class="form-label" for="firma_nazwa">Nazwa firmy</label>
+                    <input type="text" class="form-control" id="firma_nazwa" name="firma_nazwa"
+                           value="{{ settings.firmaNazwa }}" maxlength="255">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="firma_adres">Adres firmy</label>
+                    <textarea class="form-control" id="firma_adres" name="firma_adres"
+                              rows="3">{{ settings.firmaAdres }}</textarea>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <h3 class="mb-3">AUTO Plan</h3>
+                <p class="text-muted">Domyślne typy zmian przypisywane automatycznie przez funkcję AUTO Plan.</p>
+
+                <div class="mb-3">
+                    <label class="form-label" for="auto_plan_zmiana">Dzień roboczy (zmiana)</label>
+                    <select class="form-select" id="auto_plan_zmiana" name="auto_plan_zmiana_id">
+                        <option value="">— brak —</option>
+                        {% for typ in typyZmian %}
+                            <option value="{{ typ.id }}"
+                                {{ settings.autoPlanZmiana and settings.autoPlanZmiana.id == typ.id ? 'selected' : '' }}>
+                                {{ typ.skrot }} — {{ typ.nazwa }}
+                                {% if typ.godzinyOd %}({{ typ.godzinyOd }}-{{ typ.godzinyDo }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-hint">Typ zmiany przypisywany w dni robocze (Pn-Pt, bez świąt).</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="auto_plan_wolne">Weekend / święto (wolne)</label>
+                    <select class="form-select" id="auto_plan_wolne" name="auto_plan_wolne_id">
+                        <option value="">— brak —</option>
+                        {% for typ in typyZmian %}
+                            <option value="{{ typ.id }}"
+                                {{ settings.autoPlanWolne and settings.autoPlanWolne.id == typ.id ? 'selected' : '' }}>
+                                {{ typ.skrot }} — {{ typ.nazwa }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-hint">Typ zmiany przypisywany w weekendy i święta.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
+                Zapisz ustawienia
+            </button>
+        </div>
+    </form>
+{% endblock %}
