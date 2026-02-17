@@ -42,6 +42,13 @@ class PlanerBundle extends AbstractBundle
     {
         $configs = $builder->getExtensionConfig('planer');
         $userClass = $configs[0]['user_class'] ?? 'App\\Entity\\User';
+        $builder->prependExtensionConfig('framework', [
+              'asset_mapper' => [
+                  'paths' => [
+                      dirname(__DIR__) . '/assets/controllers' => '@planer/planer-bundle',
+                  ],
+              ],
+            ]);
 
         $builder->prependExtensionConfig('doctrine', [
             'orm' => [
