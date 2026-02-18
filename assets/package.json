@@ -3,7 +3,7 @@
       "symfony": {
           "controllers": {
               "grafik": {
-                  "main": "assets/controllers/grafik_controller.js",
+                  "main": "controllers/grafik_controller.js",
                   "fetch": "eager"
               }
           }
