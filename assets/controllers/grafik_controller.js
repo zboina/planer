@@ -377,12 +377,7 @@ export default class extends Controller {
 
     async _clearSelected() {
         const cells = [...this._selected];
-        if (cells.length === 1) {
-            const c = cells[0];
-            await this._delete(c, c.dataset.userId, c.dataset.date);
-            this._deselectAll();
-            return;
-        }
+        if (cells.length === 0) return;
 
         const wpisy = cells.map(c => ({ userId: parseInt(c.dataset.userId), data: c.dataset.date }));
         try {
@@ -400,7 +395,7 @@ export default class extends Controller {
                 this._applyResults(data.results);
             }
         } catch (e) {
-            console.error('Batch clear error:', e);
+            console.error('Clear error:', e);
         }
         this._deselectAll();
     }
