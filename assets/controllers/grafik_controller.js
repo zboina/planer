@@ -583,9 +583,15 @@ export default class extends Controller {
             return;
         }
 
-        // Keyboard shortcuts — only when cells are selected
+        // If kbd cursor is active but nothing selected, auto-select cursor cell
+        if (this._selected.size === 0 && this._kbdCursor) {
+            this._selectCell(this._kbdCursor);
+            this._lastClicked = this._kbdCursor;
+        }
+
         if (this._selected.size === 0) return;
 
+        // Keyboard shortcuts — apply shift type
         const key = e.key.toUpperCase();
         const typ = this.typyZmianValue.find(t => t.skrotKlawiaturowy && t.skrotKlawiaturowy.toUpperCase() === key);
         if (typ) {
@@ -594,6 +600,7 @@ export default class extends Controller {
             this._removeDropdown();
         }
 
+        // Delete/Backspace — clear cells
         if (e.key === 'Delete' || e.key === 'Backspace') {
             e.preventDefault();
             this._clearSelected();
