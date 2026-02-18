@@ -12,12 +12,16 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
     public function __construct(
         private string $baseTemplate,
         private PlanerUserResolver $resolver,
+        private string $logoutRoute = 'app_logout',
     ) {
     }
 
     public function getGlobals(): array
     {
-        return ['planer_base_template' => $this->baseTemplate];
+        return [
+            'planer_base_template' => $this->baseTemplate,
+            'planer_logout_route' => $this->logoutRoute,
+        ];
     }
 
     public function getFunctions(): array

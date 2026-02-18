@@ -15,6 +15,7 @@ services:
         arguments:
             $baseTemplate: '%planer.base_template%'
             $resolver: '@Planer\PlanerBundle\Service\PlanerUserResolver'
+            $logoutRoute: '%planer.logout_route%'
         tags: ['twig.extension']
 
     Planer\PlanerBundle\Service\PlanerUserResolver:
