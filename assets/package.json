@@ -4,6 +4,7 @@
           "controllers": {
               "grafik": {
                   "main": "controllers/grafik_controller.js",
+                  "name": "grafik",
                   "fetch": "eager"
               }
           }
