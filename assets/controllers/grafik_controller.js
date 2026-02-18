@@ -43,6 +43,7 @@ export default class extends Controller {
         this._dragging = false;
         this._dragStart = null;
         this._dragCurrent = null;
+        this._kbdCursor = null;
     }
 
     connect() {
@@ -557,14 +558,33 @@ export default class extends Controller {
     // ─── Keyboard shortcuts ────────────────────────────────────
 
     _handleKeyDown(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
         if (e.key === 'Escape') {
             this._deselectAll();
+            this._clearKbdCursor();
             return;
         }
 
-        // Apply shift type via keyboard shortcut when cells are selected
+        // Arrow key navigation
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            this._moveKbdCursor(e.key, e.shiftKey);
+            return;
+        }
+
+        // Enter/Space on kbd cursor — select cell and open dropdown
+        if ((e.key === 'Enter' || e.key === ' ') && this._kbdCursor) {
+            e.preventDefault();
+            if (!e.shiftKey) this._deselectAllSilent();
+            this._selectCell(this._kbdCursor);
+            this._lastClicked = this._kbdCursor;
+            this._openDropdown(this._kbdCursor);
+            return;
+        }
+
+        // Keyboard shortcuts — only when cells are selected
         if (this._selected.size === 0) return;
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
         const key = e.key.toUpperCase();
         const typ = this.typyZmianValue.find(t => t.skrotKlawiaturowy && t.skrotKlawiaturowy.toUpperCase() === key);
@@ -578,6 +598,65 @@ export default class extends Controller {
             e.preventDefault();
             this._clearSelected();
             this._removeDropdown();
+        }
+    }
+
+    // ─── Keyboard cursor navigation ─────────────────────────────
+
+    _moveKbdCursor(arrowKey, shiftKey) {
+        const userIds = this._getOrderedUserIds();
+        if (userIds.length === 0) return;
+
+        let uid, day;
+
+        if (this._kbdCursor) {
+            uid = this._kbdCursor.dataset.userId;
+            day = parseInt(this._kbdCursor.dataset.day);
+        } else if (this._lastClicked) {
+            uid = this._lastClicked.dataset.userId;
+            day = parseInt(this._lastClicked.dataset.day);
+        } else {
+            // Start at first cell
+            uid = userIds[0];
+            day = 1;
+        }
+
+        let rowIdx = userIds.indexOf(uid);
+
+        switch (arrowKey) {
+            case 'ArrowLeft':  day--; break;
+            case 'ArrowRight': day++; break;
+            case 'ArrowUp':    rowIdx--; break;
+            case 'ArrowDown':  rowIdx++; break;
+        }
+
+        // Clamp row
+        if (rowIdx < 0) rowIdx = 0;
+        if (rowIdx >= userIds.length) rowIdx = userIds.length - 1;
+        uid = userIds[rowIdx];
+
+        // Find valid cell
+        const cell = this._cellMap[uid + '-' + day];
+        if (!cell) return;
+
+        // Set cursor
+        if (this._kbdCursor) this._kbdCursor.classList.remove('kbd-cursor');
+        cell.classList.add('kbd-cursor');
+        this._kbdCursor = cell;
+
+        // Shift+arrow: extend selection
+        if (shiftKey) {
+            this._selectCell(cell);
+        }
+
+        // Scroll cell into view
+        cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    _clearKbdCursor() {
+        if (this._kbdCursor) {
+            this._kbdCursor.classList.remove('kbd-cursor');
+            this._kbdCursor = null;
         }
     }
 
