@@ -23,6 +23,14 @@ export default class extends Controller {
         typyZmian: Array,
         canEdit: String,
         departamentId: Number,
+        glownyUserIds: Array,
+        dniWolne: Array,
+        podanieUrl: String,
+        podaniePdfUrl: String,
+        currentUserId: Number,
+        autoPlanUrl: String,
+        rok: Number,
+        miesiac: Number,
     };
 
     static targets = ['cell', 'dwCell'];
@@ -39,7 +47,7 @@ export default class extends Controller {
 
     connect() {
         this._onDocClick = (e) => this._onOutsideClick(e);
-        this._onKeyDown = (e) => { if (e.key === 'Escape') this._deselectAll(); };
+        this._onKeyDown = (e) => this._handleKeyDown(e);
         this._onMouseMove = (e) => this._handleMouseMove(e);
         this._onMouseUp = (e) => this._handleMouseUp(e);
         document.addEventListener('click', this._onDocClick);
@@ -543,6 +551,61 @@ export default class extends Controller {
         const dwCell = this.dwCellTargets.find(c => c.dataset.userId === uid);
         if (dwCell) {
             dwCell.textContent = count;
+        }
+    }
+
+    // ─── Keyboard shortcuts ────────────────────────────────────
+
+    _handleKeyDown(e) {
+        if (e.key === 'Escape') {
+            this._deselectAll();
+            return;
+        }
+
+        // Apply shift type via keyboard shortcut when cells are selected
+        if (this._selected.size === 0) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+        const key = e.key.toUpperCase();
+        const typ = this.typyZmianValue.find(t => t.skrotKlawiaturowy && t.skrotKlawiaturowy.toUpperCase() === key);
+        if (typ) {
+            e.preventDefault();
+            this._applyToSelected(typ.id);
+            this._removeDropdown();
+        }
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            this._clearSelected();
+            this._removeDropdown();
+        }
+    }
+
+    // ─── Auto Plan ───────────────────────────────────────────────
+
+    async autoPlan() {
+        if (!confirm('Automatycznie uzupełnić grafik na podstawie szablonów? Istniejące wpisy nie zostaną nadpisane.')) return;
+
+        try {
+            const res = await fetch(this.autoPlanUrlValue, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    departamentId: this.departamentIdValue,
+                    rok: this.rokValue,
+                    miesiac: this.miesiacValue,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Reload page to show results
+                window.location.reload();
+            } else {
+                alert(data.error || 'Wystąpił błąd podczas automatycznego planowania.');
+            }
+        } catch (e) {
+            console.error('Auto plan error:', e);
+            alert('Wystąpił błąd podczas automatycznego planowania.');
         }
     }
 
