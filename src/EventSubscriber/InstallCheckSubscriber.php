@@ -44,10 +44,11 @@ class InstallCheckSubscriber implements EventSubscriberInterface
         $io->note([
             'Planer Bundle: dane słownikowe nie zostały jeszcze zainstalowane.',
             '',
-            'Uruchom komendę:',
-            '  php bin/console planer:install',
+            'Uruchom komendy:',
+            '  1. php bin/console doctrine:migrations:migrate',
+            '  2. php bin/console planer:install',
             '',
-            'Komenda zainstaluje:',
+            'Komenda planer:install zainstaluje:',
             '  • Typy podań (urlop, czas wolny)',
             '  • Rodzaje urlopów (wypoczynkowy, okolicznościowy, na żądanie, odbiór nadgodzin)',
             '  • Szablony podań HTML (urlop, praca zdalna, opieka nad dzieckiem)',
@@ -63,7 +64,7 @@ class InstallCheckSubscriber implements EventSubscriberInterface
             return $count > 0;
         } catch (\Throwable) {
             // Tabela nie istnieje — migracje jeszcze nie uruchomione
-            return true;
+            return false;
         }
     }
 }
