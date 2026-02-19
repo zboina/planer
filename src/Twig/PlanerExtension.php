@@ -11,8 +11,8 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
 {
     public function __construct(
         private string $baseTemplate,
+        private string $logoutRoute,
         private PlanerUserResolver $resolver,
-        private string $logoutRoute = 'app_logout',
     ) {
     }
 

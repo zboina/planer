@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{% block title %}Planer{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="layout-fluid">
+    <div class="page">
+        <header class="navbar navbar-expand-md d-print-none">
+            <div class="container-xl">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+                    <a href="{{ path('planer_admin_dashboard') }}">Planer</a>
+                </h1>
+                <div class="navbar-nav flex-row order-md-last">
+                    {% if app.user %}
+                        <div class="nav-item dropdown">
+                            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
+                                <span class="avatar avatar-sm bg-blue-lt">
+                                    {{ app.user.userIdentifier|first|upper }}
+                                </span>
+                                <div class="d-none d-xl-block ps-2">
+                                    <div>{{ app.user.userIdentifier }}</div>
+                                </div>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="{{ path(planer_logout_route|default('app_logout')) }}">Wyloguj</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+        <div class="page-wrapper">
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <div class="page-header">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="page-pretitle">{% block page_pretitle %}{% endblock %}</div>
+                                <h2 class="page-title">{% block page_title %}{% endblock %}</h2>
+                            </div>
+                            <div class="col-auto ms-auto d-print-none">
+                                {% block page_actions %}{% endblock %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="container-xl">
+                    {% block body %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/js/tabler.min.js"></script>
+    {% block javascripts %}{% endblock %}
+</body>
+</html>
