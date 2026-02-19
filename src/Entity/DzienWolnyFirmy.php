@@ -7,7 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DzienWolnyFirmyRepository::class)]
-#[ORM\Table(name: 'dzien_wolny_firmy')]
+#[ORM\Table(name: 'planer_dzien_wolny_firmy')]
 #[ORM\UniqueConstraint(columns: ['data'])]
 class DzienWolnyFirmy
 {

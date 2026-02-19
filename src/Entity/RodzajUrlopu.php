@@ -5,7 +5,7 @@ namespace Planer\PlanerBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'rodzaj_urlopu')]
+#[ORM\Table(name: 'planer_rodzaj_urlopu')]
 class RodzajUrlopu
 {
     #[ORM\Id]

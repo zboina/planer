@@ -7,8 +7,8 @@ use Planer\PlanerBundle\Repository\UserDepartamentRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserDepartamentRepository::class)]
-#[ORM\Table(name: 'user_departament')]
-#[ORM\UniqueConstraint(name: 'uq_user_departament', columns: ['user_id', 'departament_id'])]
+#[ORM\Table(name: 'planer_user_departament')]
+#[ORM\UniqueConstraint(name: 'uq_planer_user_departament', columns: ['user_id', 'departament_id'])]
 class UserDepartament
 {
     #[ORM\Id]

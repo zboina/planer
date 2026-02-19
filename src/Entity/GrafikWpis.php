@@ -8,8 +8,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: GrafikWpisRepository::class)]
-#[ORM\Table(name: 'grafik_wpis')]
-#[ORM\UniqueConstraint(name: 'uq_grafik_wpis', columns: ['user_id', 'data', 'departament_id'])]
+#[ORM\Table(name: 'planer_grafik_wpis')]
+#[ORM\UniqueConstraint(name: 'uq_planer_grafik_wpis', columns: ['user_id', 'data', 'departament_id'])]
 #[ORM\HasLifecycleCallbacks]
 class GrafikWpis
 {

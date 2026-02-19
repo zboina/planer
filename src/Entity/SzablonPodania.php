@@ -6,7 +6,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'szablon_podania')]
+#[ORM\Table(name: 'planer_szablon_podania')]
 class SzablonPodania
 {
     #[ORM\Id]

@@ -7,7 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'typ_zmiany')]
+#[ORM\Table(name: 'planer_typ_zmiany')]
 class TypZmiany
 {
     #[ORM\Id]
@@ -51,7 +51,7 @@ class TypZmiany
 
     /** @var Collection<int, Departament> */
     #[ORM\ManyToMany(targetEntity: Departament::class)]
-    #[ORM\JoinTable(name: 'typ_zmiany_departament')]
+    #[ORM\JoinTable(name: 'planer_typ_zmiany_departament')]
     private Collection $departamenty;
 
     public function __construct()
