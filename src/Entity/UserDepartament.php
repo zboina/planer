@@ -16,7 +16,7 @@ class UserDepartament
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class, inversedBy: 'userDepartamenty')]
+    #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private object $user;
 
