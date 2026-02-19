@@ -39,6 +39,10 @@ class PlanerBundle extends AbstractBundle
                     ->defaultValue('app_logout')
                     ->info('Nazwa route do wylogowania (np. app_logout)')
                 ->end()
+                ->scalarNode('admin_role')
+                    ->defaultValue('ROLE_ADMIN')
+                    ->info('Rola wymagana do dostępu do panelu administracji (np. ROLE_ADMIN)')
+                ->end()
             ->end();
     }
 
@@ -106,6 +110,7 @@ YAML
             ->set('planer.user_full_name_fields', $config['user_full_name_fields'])
             ->set('planer.firma_nazwa', $config['firma_nazwa'])
             ->set('planer.firma_adres', $config['firma_adres'])
-            ->set('planer.logout_route', $config['logout_route']);
+            ->set('planer.logout_route', $config['logout_route'])
+            ->set('planer.admin_role', $config['admin_role']);
     }
 }

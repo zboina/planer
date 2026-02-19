@@ -12,6 +12,7 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
     public function __construct(
         private string $baseTemplate,
         private string $logoutRoute,
+        private string $adminRole,
         private PlanerUserResolver $resolver,
     ) {
     }
@@ -21,6 +22,7 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
         return [
             'planer_base_template' => $this->baseTemplate,
             'planer_logout_route' => $this->logoutRoute,
+            'planer_admin_role' => $this->adminRole,
         ];
     }
 
