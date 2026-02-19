@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/css/tabler.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
     {% block stylesheets %}{% endblock %}
+    {% block importmap %}{{ importmap('app') }}{% endblock %}
 </head>
 <body class="layout-fluid">
     <div class="page">

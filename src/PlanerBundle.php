@@ -47,6 +47,15 @@ class PlanerBundle extends AbstractBundle
         $configs = $builder->getExtensionConfig('planer');
         $userClass = $configs[0]['user_class'] ?? 'App\\Entity\\User';
 
+        // Register bundle Stimulus controllers in AssetMapper
+        $builder->prependExtensionConfig('framework', [
+            'asset_mapper' => [
+                'paths' => [
+                    dirname(__DIR__) . '/assets/controllers' => 'controllers',
+                ],
+            ],
+        ]);
+
         $builder->prependExtensionConfig('doctrine', [
             'orm' => [
                 'resolve_target_entities' => [
