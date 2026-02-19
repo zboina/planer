@@ -7,15 +7,9 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
 class PlanerBundle extends AbstractBundle
 {
-    public function loadRoutes(RoutingConfigurator $routes): void
-    {
-        $routes->import(dirname(__DIR__) . '/config/routes.yaml');
-    }
-
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -77,6 +71,21 @@ class PlanerBundle extends AbstractBundle
         ContainerBuilder $builder,
     ): void {
         $container->import('../config/services.yaml');
+
+        // Auto-create routes config in host project if missing
+        $projectDir = $builder->getParameter('kernel.project_dir');
+        $routesFile = $projectDir . '/config/routes/planer.yaml';
+        if (!file_exists($routesFile)) {
+            $dir = \dirname($routesFile);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            @file_put_contents($routesFile, <<<'YAML'
+planer_routes:
+    resource: '@PlanerBundle/config/routes.yaml'
+YAML
+            );
+        }
 
         $container->parameters()
             ->set('planer.base_template', $config['base_template'])
