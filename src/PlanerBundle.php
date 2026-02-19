@@ -15,16 +15,12 @@ class PlanerBundle extends AbstractBundle
         $definition->rootNode()
             ->children()
                 ->scalarNode('user_class')
-                    ->isRequired()
+                    ->defaultValue('App\\Entity\\User')
                     ->info('FQCN klasy User (np. App\\Entity\\User)')
                 ->end()
                 ->scalarNode('base_template')
-                    ->defaultValue('@Planer/base.html.twig')
+                    ->defaultValue('base.html.twig')
                     ->info('Bazowy szablon Twig, który rozszerzają szablony bundla')
-                ->end()
-                ->scalarNode('logout_route')
-                    ->defaultValue('app_logout')
-                    ->info('Nazwa route do wylogowania (używana w szablonie bazowym bundla)')
                 ->end()
                 ->arrayNode('user_full_name_fields')
                     ->defaultValue(['firstName', 'lastName'])
@@ -46,13 +42,6 @@ class PlanerBundle extends AbstractBundle
     {
         $configs = $builder->getExtensionConfig('planer');
         $userClass = $configs[0]['user_class'] ?? 'App\\Entity\\User';
-        $builder->prependExtensionConfig('framework', [
-              'asset_mapper' => [
-                  'paths' => [
-                      dirname(__DIR__) . '/assets/controllers' => '@planer/planer-bundle',
-                  ],
-              ],
-            ]);
 
         $builder->prependExtensionConfig('doctrine', [
             'orm' => [
@@ -84,7 +73,6 @@ class PlanerBundle extends AbstractBundle
             ->set('planer.user_class', $config['user_class'])
             ->set('planer.user_full_name_fields', $config['user_full_name_fields'])
             ->set('planer.firma_nazwa', $config['firma_nazwa'])
-            ->set('planer.firma_adres', $config['firma_adres'])
-            ->set('planer.logout_route', $config['logout_route']);
+            ->set('planer.firma_adres', $config['firma_adres']);
     }
 }
