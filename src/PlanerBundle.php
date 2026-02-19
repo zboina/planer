@@ -35,6 +35,10 @@ class PlanerBundle extends AbstractBundle
                     ->defaultValue('')
                     ->info('Adres firmy (do podań urlopowych)')
                 ->end()
+                ->scalarNode('logout_route')
+                    ->defaultValue('app_logout')
+                    ->info('Nazwa route do wylogowania (np. app_logout)')
+                ->end()
             ->end();
     }
 
@@ -73,6 +77,7 @@ class PlanerBundle extends AbstractBundle
             ->set('planer.user_class', $config['user_class'])
             ->set('planer.user_full_name_fields', $config['user_full_name_fields'])
             ->set('planer.firma_nazwa', $config['firma_nazwa'])
-            ->set('planer.firma_adres', $config['firma_adres']);
+            ->set('planer.firma_adres', $config['firma_adres'])
+            ->set('planer.logout_route', $config['logout_route']);
     }
 }
