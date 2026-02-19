@@ -47,15 +47,6 @@ class PlanerBundle extends AbstractBundle
         $configs = $builder->getExtensionConfig('planer');
         $userClass = $configs[0]['user_class'] ?? 'App\\Entity\\User';
 
-        // Register bundle Stimulus controllers in AssetMapper
-        $builder->prependExtensionConfig('framework', [
-            'asset_mapper' => [
-                'paths' => [
-                    dirname(__DIR__) . '/assets/controllers' => 'controllers',
-                ],
-            ],
-        ]);
-
         $builder->prependExtensionConfig('doctrine', [
             'orm' => [
                 'resolve_target_entities' => [
@@ -81,8 +72,21 @@ class PlanerBundle extends AbstractBundle
     ): void {
         $container->import('../config/services.yaml');
 
-        // Auto-create routes config in host project if missing
         $projectDir = $builder->getParameter('kernel.project_dir');
+
+        // Auto-copy Stimulus controllers to host project
+        $bundleControllersDir = \dirname(__DIR__) . '/assets/controllers';
+        $hostControllersDir = $projectDir . '/assets/controllers';
+        if (is_dir($bundleControllersDir) && is_dir($hostControllersDir)) {
+            foreach (glob($bundleControllersDir . '/*_controller.js') as $src) {
+                $dest = $hostControllersDir . '/' . basename($src);
+                if (!file_exists($dest)) {
+                    @copy($src, $dest);
+                }
+            }
+        }
+
+        // Auto-create routes config in host project if missing
         $routesFile = $projectDir . '/config/routes/planer.yaml';
         if (!file_exists($routesFile)) {
             $dir = \dirname($routesFile);
