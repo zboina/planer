@@ -139,12 +139,24 @@ class PlanerAdminController extends AbstractController
         $postedSzef = $request->request->all('szef') ?: [];
         $postedGlowny = $request->request->all('glowny') ?: [];
         $postedAdres = $request->request->all('adres') ?: [];
+        $postedFirstName = $request->request->all('firstName') ?: [];
+        $postedLastName = $request->request->all('lastName') ?: [];
         $postedUkryty = $request->request->all('ukryty') ?: [];
 
-        // Save address for each user
+        // Save address and names for each user
         foreach ($postedAdres as $userId => $adres) {
             if (isset($usersById[$userId])) {
                 $this->resolver->setAdres($usersById[$userId], trim($adres) ?: null);
+            }
+        }
+        foreach ($postedFirstName as $userId => $firstName) {
+            if (isset($usersById[$userId])) {
+                $this->resolver->setFirstName($usersById[$userId], trim($firstName) ?: null);
+            }
+        }
+        foreach ($postedLastName as $userId => $lastName) {
+            if (isset($usersById[$userId])) {
+                $this->resolver->setLastName($usersById[$userId], trim($lastName) ?: null);
             }
         }
 

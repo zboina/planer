@@ -23,6 +23,12 @@ class PlanerUserProfile
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $adres = null;
 
+    #[ORM\Column(name: 'first_name', length: 100, nullable: true)]
+    private ?string $firstName = null;
+
+    #[ORM\Column(name: 'last_name', length: 100, nullable: true)]
+    private ?string $lastName = null;
+
     #[ORM\Column(name: 'ilosc_dni_urlopu_w_roku', options: ['default' => 26])]
     private int $iloscDniUrlopuWRoku = 26;
 
@@ -60,6 +66,28 @@ class PlanerUserProfile
     public function setIloscDniUrlopuWRoku(int $iloscDniUrlopuWRoku): static
     {
         $this->iloscDniUrlopuWRoku = $iloscDniUrlopuWRoku;
+        return $this;
+    }
+
+    public function getFirstName(): ?string
+    {
+        return $this->firstName;
+    }
+
+    public function setFirstName(?string $firstName): static
+    {
+        $this->firstName = $firstName;
+        return $this;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->lastName;
+    }
+
+    public function setLastName(?string $lastName): static
+    {
+        $this->lastName = $lastName;
         return $this;
     }
 }

@@ -56,6 +56,13 @@ class PlanerUserResolver
             return implode(' ', $parts);
         }
 
+        // Try PlanerUserProfile firstName/lastName
+        $profile = $this->getProfile($user);
+        $profileParts = array_filter([$profile->getFirstName(), $profile->getLastName()]);
+        if ($profileParts) {
+            return implode(' ', $profileParts);
+        }
+
         // Fallback to Symfony user identifier
         if (method_exists($user, 'getUserIdentifier')) {
             return $user->getUserIdentifier();
@@ -86,6 +93,26 @@ class PlanerUserResolver
 
         $this->profileCache[$userId] = $profile;
         return $profile;
+    }
+
+    public function getFirstName(object|int $user): ?string
+    {
+        return $this->getProfile($user)->getFirstName();
+    }
+
+    public function setFirstName(object|int $user, ?string $firstName): void
+    {
+        $this->getProfile($user)->setFirstName($firstName);
+    }
+
+    public function getLastName(object|int $user): ?string
+    {
+        return $this->getProfile($user)->getLastName();
+    }
+
+    public function setLastName(object|int $user, ?string $lastName): void
+    {
+        $this->getProfile($user)->setLastName($lastName);
     }
 
     public function getAdres(object|int $user): ?string

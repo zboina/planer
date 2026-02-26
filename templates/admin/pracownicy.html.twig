@@ -42,7 +42,9 @@
             <table class="table table-vcenter">
                 <thead>
                     <tr>
-                        <th style="width:200px;">Pracownik</th>
+                        <th style="width:130px;">Imię</th>
+                        <th style="width:150px;">Nazwisko</th>
+                        <th style="width:180px;">Email</th>
                         <th style="width:220px;">Adres</th>
                         <th>Departamenty</th>
                     </tr>
@@ -50,8 +52,14 @@
                 <tbody>
                     {% for user in users %}
                     {% set ua = assignments[user.id] | default({}) %}
-                    <tr class="user-row" data-name="{{ planer_name(user)|lower }}">
-                        <td class="fw-bold">{{ planer_name(user) }}</td>
+                    <tr class="user-row" data-name="{{ planer_name(user)|lower }}" data-email="{{ user.userIdentifier|lower }}">
+                        <td>
+                            <input type="text" class="form-control form-control-sm" name="firstName[{{ user.id }}]" value="{{ planer_first_name(user) }}" placeholder="Imię..." style="font-size:.78rem;">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm" name="lastName[{{ user.id }}]" value="{{ planer_last_name(user) }}" placeholder="Nazwisko..." style="font-size:.78rem;">
+                        </td>
+                        <td class="text-secondary" style="font-size:.78rem;">{{ user.userIdentifier }}</td>
                         <td>
                             <textarea class="form-control form-control-sm" name="adres[{{ user.id }}]" rows="2" placeholder="Adres pracownika..." style="font-size:.78rem;resize:vertical;">{{ planer_adres(user) }}</textarea>
                         </td>
@@ -198,7 +206,14 @@
         document.getElementById('user-search').addEventListener('input', function() {
             var q = this.value.toLowerCase().trim();
             document.querySelectorAll('.user-row').forEach(function(r) {
-                r.style.display = (!q || r.dataset.name.indexOf(q) !== -1) ? '' : 'none';
+                if (!q) { r.style.display = ''; return; }
+                var fnInput = r.querySelector('input[name^="firstName"]');
+                var lnInput = r.querySelector('input[name^="lastName"]');
+                var fn = fnInput ? fnInput.value.toLowerCase() : '';
+                var ln = lnInput ? lnInput.value.toLowerCase() : '';
+                var email = r.dataset.email || '';
+                var match = fn.indexOf(q) !== -1 || ln.indexOf(q) !== -1 || email.indexOf(q) !== -1 || r.dataset.name.indexOf(q) !== -1;
+                r.style.display = match ? '' : 'none';
             });
         });
 

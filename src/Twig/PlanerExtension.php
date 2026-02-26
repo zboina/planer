@@ -37,6 +37,8 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
     {
         return [
             new TwigFunction('planer_name', [$this, 'getUserName']),
+            new TwigFunction('planer_first_name', [$this, 'getUserFirstName']),
+            new TwigFunction('planer_last_name', [$this, 'getUserLastName']),
             new TwigFunction('planer_adres', [$this, 'getUserAdres']),
             new TwigFunction('planer_urlop_limit', [$this, 'getUserUrlopLimit']),
             new TwigFunction('planer_modul', [$this, 'hasModulAccess']),
@@ -56,6 +58,16 @@ class PlanerExtension extends AbstractExtension implements GlobalsInterface
     public function getUserName(object $user): string
     {
         return $this->resolver->getFullName($user);
+    }
+
+    public function getUserFirstName(object $user): ?string
+    {
+        return $this->resolver->getFirstName($user);
+    }
+
+    public function getUserLastName(object $user): ?string
+    {
+        return $this->resolver->getLastName($user);
     }
 
     public function getUserAdres(object $user): ?string
