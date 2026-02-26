@@ -52,10 +52,28 @@ class GrafikController extends AbstractController
 
         $allDepartamenty = $em->getRepository(Departament::class)->findBy([], ['kolejnosc' => 'ASC', 'nazwa' => 'ASC']);
 
+        $obserwowaneIds = [];
         if ($isAdmin) {
             $dostepneDepartamenty = $allDepartamenty;
         } else {
             $dostepneDepartamenty = $this->getUserDepartaments($currentUser, $userDepartamentRepo);
+
+            // Collect podgladaIds from all user's departments
+            $allPodgladaIds = [];
+            foreach ($dostepneDepartamenty as $ud) {
+                foreach ($ud->getPodgladaIds() as $pid) {
+                    $allPodgladaIds[$pid] = true;
+                }
+            }
+
+            // Add observed departments that user doesn't already belong to
+            $ownIds = array_map(fn(Departament $d) => $d->getId(), $dostepneDepartamenty);
+            foreach ($allDepartamenty as $ad) {
+                if (isset($allPodgladaIds[$ad->getId()]) && !in_array($ad->getId(), $ownIds, true)) {
+                    $dostepneDepartamenty[] = $ad;
+                    $obserwowaneIds[] = $ad->getId();
+                }
+            }
         }
 
         if (empty($dostepneDepartamenty)) {
@@ -91,7 +109,8 @@ class GrafikController extends AbstractController
             }
         }
 
-        $canEdit = $isAdmin || $this->isUserSzefDepartamentu($currentUser, $departament, $userDepartamentRepo);
+        $isObserwowany = in_array($departament->getId(), $obserwowaneIds, true);
+        $canEdit = !$isObserwowany && ($isAdmin || $this->isUserSzefDepartamentu($currentUser, $departament, $userDepartamentRepo));
 
         $userDepartamenty = $userDepartamentRepo->findUsersForDepartament($departament, false);
 
@@ -227,6 +246,8 @@ class GrafikController extends AbstractController
             'canPodania' => $modulChecker->hasAccess('moje_podania'),
             'canDrukuj' => $modulChecker->hasAccess('drukuj_grafik'),
             'glownyGrid' => $glownyGrid,
+            'isObserwowany' => $isObserwowany,
+            'obserwowaneIds' => $obserwowaneIds,
         ]);
     }
 
@@ -267,6 +288,15 @@ class GrafikController extends AbstractController
                 if ($d->getId() === $departament->getId()) {
                     $hasAccess = true;
                     break;
+                }
+            }
+            // Also allow access for observed departments
+            if (!$hasAccess) {
+                foreach ($dostepne as $d) {
+                    if (in_array($departament->getId(), $d->getPodgladaIds(), true)) {
+                        $hasAccess = true;
+                        break;
+                    }
                 }
             }
             if (!$hasAccess) {

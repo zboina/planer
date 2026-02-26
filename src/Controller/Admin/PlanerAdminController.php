@@ -777,6 +777,9 @@ class PlanerAdminController extends AbstractController
             $departament->setSkrot($request->request->getString('skrot'));
             $departament->setKolejnosc($request->request->getInt('kolejnosc'));
 
+            $podglada = $request->request->all('podglada');
+            $departament->setPodgladaIds(array_map('intval', $podglada));
+
             $this->em->persist($departament);
             $this->em->flush();
 
@@ -784,8 +787,12 @@ class PlanerAdminController extends AbstractController
             return $this->redirectToRoute('departament_index');
         }
 
+        $allDepartamenty = $this->em->getRepository(Departament::class)
+            ->findBy([], ['kolejnosc' => 'ASC', 'nazwa' => 'ASC']);
+
         return $this->render('@Planer/admin/departament/new.html.twig', [
             'active' => 'departamenty',
+            'allDepartamenty' => $allDepartamenty,
         ]);
     }
 
@@ -797,15 +804,22 @@ class PlanerAdminController extends AbstractController
             $departament->setSkrot($request->request->getString('skrot'));
             $departament->setKolejnosc($request->request->getInt('kolejnosc'));
 
+            $podglada = $request->request->all('podglada');
+            $departament->setPodgladaIds(array_map('intval', $podglada));
+
             $this->em->flush();
 
             $this->addFlash('success', 'Departament został zaktualizowany.');
             return $this->redirectToRoute('departament_index');
         }
 
+        $allDepartamenty = $this->em->getRepository(Departament::class)
+            ->findBy([], ['kolejnosc' => 'ASC', 'nazwa' => 'ASC']);
+
         return $this->render('@Planer/admin/departament/edit.html.twig', [
             'active' => 'departamenty',
             'departament' => $departament,
+            'allDepartamenty' => $allDepartamenty,
         ]);
     }
 

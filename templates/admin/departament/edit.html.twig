@@ -17,6 +17,22 @@
         <label class="form-label" for="kolejnosc">Kolejność</label>
         <input type="number" class="form-control" id="kolejnosc" name="kolejnosc" value="{{ departament.kolejnosc }}" style="width:100px;">
     </div>
+    {% if allDepartamenty|length > 1 %}
+    <div class="mb-3">
+        <label class="form-label">Podgląda działy</label>
+        <small class="form-text text-muted d-block mb-2">Pracownicy tego działu mogą podglądać grafiki wybranych działów (tylko do odczytu).</small>
+        {% for d in allDepartamenty %}
+            {% if d.id != departament.id %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="podglada[]" value="{{ d.id }}" id="podglada_{{ d.id }}"
+                    {{ d.id in departament.podgladaIds ? 'checked' : '' }}>
+                <label class="form-check-label" for="podglada_{{ d.id }}">{{ d.nazwa }} ({{ d.skrot }})</label>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-success">Zapisz</button>
         <a href="{{ path('departament_index') }}" class="btn btn-secondary">Anuluj</a>

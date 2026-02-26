@@ -22,6 +22,9 @@ class Departament
     #[ORM\Column(options: ['default' => 0])]
     private int $kolejnosc = 0;
 
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $podgladaIds = [];
+
     public function getId(): ?int
     {
         return $this->id;
@@ -57,6 +60,17 @@ class Departament
     public function setKolejnosc(int $kolejnosc): static
     {
         $this->kolejnosc = $kolejnosc;
+        return $this;
+    }
+
+    public function getPodgladaIds(): array
+    {
+        return $this->podgladaIds;
+    }
+
+    public function setPodgladaIds(array $podgladaIds): static
+    {
+        $this->podgladaIds = $podgladaIds;
         return $this;
     }
 
