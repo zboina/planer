@@ -13,6 +13,7 @@ export default class extends Controller {
         previewUrl: String,
         previewNewUrl: String,
         szablonId: Number,
+        legacy: String,
     };
 
     static targets = [
@@ -28,13 +29,30 @@ export default class extends Controller {
         'propW',
         'propH',
         'placeholderSelect',
+        'legacyMode',
+        'canvasMode',
+        'legacyTextarea',
     ];
 
     connect() {
-        this._initCanvas();
-        this._loadState();
-        this._bindCanvasEvents();
-        this._bindKeyboard();
+        this._isLegacyMode = this.legacyValue === '1';
+
+        if (!this._isLegacyMode) {
+            this._initCanvas();
+            this._loadState();
+            this._bindCanvasEvents();
+            this._bindKeyboard();
+        }
+
+        // Przy submicie formularza — synchronizuj textarea → hidden input w trybie legacy
+        const form = this.element.closest('form');
+        if (form) {
+            form.addEventListener('submit', () => {
+                if (this._isLegacyMode && this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+                    this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
+                }
+            });
+        }
     }
 
     disconnect() {
@@ -315,6 +333,53 @@ export default class extends Controller {
         this._syncState();
     }
 
+    // ── Tryb legacy / canvas ────────────────────────────────────
+
+    switchToCanvas() {
+        if (!this._fc) {
+            this._initCanvas();
+            this._bindCanvasEvents();
+            this._bindKeyboard();
+        }
+
+        // Synchronizuj textarea → hidden input
+        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+            this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
+        }
+
+        this._isLegacyMode = false;
+        if (this.hasLegacyModeTarget) this.legacyModeTarget.classList.add('d-none');
+        if (this.hasCanvasModeTarget) this.canvasModeTarget.classList.remove('d-none');
+    }
+
+    switchToLegacy() {
+        this._isLegacyMode = true;
+
+        // Synchronizuj hidden input → textarea
+        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+            this.legacyTextareaTarget.value = this.trescHtmlTarget.value;
+        }
+
+        // Wyczyść canvas_json żeby zapis nie nadpisał trybu
+        if (this.hasCanvasJsonTarget) {
+            this.canvasJsonTarget.value = '';
+        }
+
+        if (this.hasCanvasModeTarget) this.canvasModeTarget.classList.add('d-none');
+        if (this.hasLegacyModeTarget) this.legacyModeTarget.classList.remove('d-none');
+    }
+
+    insertPlaceholderLegacy(e) {
+        const ph = e.currentTarget.dataset.placeholder;
+        if (!this.hasLegacyTextareaTarget || !ph) return;
+        const ta = this.legacyTextareaTarget;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + ph + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + ph.length;
+        ta.focus();
+    }
+
     importHtml() {
         if (!this.hasTrescHtmlTarget) return;
         const html = this.trescHtmlTarget.value;
@@ -438,9 +503,14 @@ export default class extends Controller {
     }
 
     previewPdf() {
+        // W trybie legacy — synchronizuj textarea → hidden input
+        if (this._isLegacyMode && this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+            this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
+        }
+
         const html = this.trescHtmlTarget.value;
         if (!html.trim()) {
-            alert('Treść HTML jest pusta. Dodaj elementy na kanwę.');
+            alert('Treść HTML jest pusta.');
             return;
         }
 

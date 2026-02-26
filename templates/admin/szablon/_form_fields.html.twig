@@ -2,6 +2,7 @@
 {% set szablonId = szablon is defined and szablon ? szablon.id : 0 %}
 {% set previewUrl = szablon is defined and szablon ? path('planer_admin_szablon_preview_pdf', {id: szablon.id}) : '' %}
 {% set previewNewUrl = path('planer_admin_szablon_preview_pdf_new') %}
+{% set isLegacy = szablon is defined and szablon and szablon.trescHtml and not szablon.canvasJson %}
 {% set placeholderList = [] %}
 {% for placeholder, opis in placeholders %}
     {% set placeholderList = placeholderList|merge([placeholder]) %}
@@ -12,7 +13,8 @@
      data-szablon-editor-placeholders-value="{{ placeholderList|json_encode|e('html_attr') }}"
      data-szablon-editor-preview-url-value="{{ previewUrl }}"
      data-szablon-editor-preview-new-url-value="{{ previewNewUrl }}"
-     data-szablon-editor-szablon-id-value="{{ szablonId }}">
+     data-szablon-editor-szablon-id-value="{{ szablonId }}"
+     data-szablon-editor-legacy-value="{{ isLegacy ? '1' : '0' }}">
 
     {# ── Nazwa szablonu ── #}
     <div class="mb-3">
@@ -22,159 +24,197 @@
                placeholder="np. Podanie o urlop">
     </div>
 
-    {# ── Legacy alert ── #}
-    {% if szablon is defined and szablon and szablon.trescHtml and not szablon.canvasJson %}
-        <div class="alert alert-info">
-            <i class="ti ti-info-circle me-1"></i>
-            Ten szablon został utworzony w starym edytorze HTML. Możesz go zostawić bez zmian lub
-            <button type="button" class="btn btn-sm btn-outline-primary ms-1" data-action="szablon-editor#importHtml">
-                <i class="ti ti-file-import me-1"></i>Zaimportuj HTML na kanwę
-            </button>
-            aby edytować wizualnie.
-        </div>
-    {% endif %}
-
-    {# ── Toolbar ── #}
-    <div class="card mb-3" data-szablon-editor-target="toolbar">
-        <div class="card-body py-2">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                {# Add objects #}
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addText" title="Dodaj tekst">
-                        <i class="ti ti-text-size"></i> Tekst
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addLine" title="Dodaj linię">
-                        <i class="ti ti-line"></i> Linia
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addRect" title="Dodaj prostokąt">
-                        <i class="ti ti-square"></i> Prostokąt
-                    </button>
-                </div>
-
-                <div class="vr"></div>
-
-                {# Placeholders #}
-                <div class="input-group input-group-sm" style="width: auto;">
-                    <select class="form-select form-select-sm" data-szablon-editor-target="placeholderSelect" style="max-width: 220px;">
-                        <option value="">-- Placeholder --</option>
-                        {% for placeholder, opis in placeholders %}
-                            <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#addPlaceholder">
-                        Wstaw
-                    </button>
-                </div>
-
-                <div class="vr"></div>
-
-                {# Formatting #}
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
-                        <i class="ti ti-bold"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
-                        <i class="ti ti-italic"></i>
-                    </button>
-                </div>
-
-                {# Font size #}
-                <div class="input-group input-group-sm" style="width: 90px;">
-                    <input type="number" class="form-control form-control-sm" min="6" max="200" value="12"
-                           data-szablon-editor-target="fontSize"
-                           data-action="change->szablon-editor#updateFontSize"
-                           title="Rozmiar czcionki">
-                </div>
-
-                <div class="vr"></div>
-
-                {# Alignment #}
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignLeft" title="Do lewej">
-                        <i class="ti ti-align-left"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
-                        <i class="ti ti-align-center"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignRight" title="Do prawej">
-                        <i class="ti ti-align-right"></i>
-                    </button>
-                </div>
-
-                <div class="vr"></div>
-
-                {# Delete #}
-                <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#deleteSelected" title="Usuń zaznaczone (Delete)">
-                    <i class="ti ti-trash"></i> Usuń
-                </button>
-
-                {# Spacer #}
-                <div class="ms-auto"></div>
-
-                {# Import HTML #}
-                {% if szablon is defined and szablon and szablon.trescHtml and not szablon.canvasJson %}
-                    <button type="button" class="btn btn-sm btn-outline-warning" data-action="szablon-editor#importHtml" title="Importuj istniejący HTML na kanwę">
-                        <i class="ti ti-file-import"></i> Importuj HTML
-                    </button>
-                {% endif %}
-
-                {# Preview PDF #}
-                <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
-                    <i class="ti ti-file-type-pdf"></i> Podgląd PDF
-                </button>
+    {# ── Legacy: tryb HTML ── #}
+    <div data-szablon-editor-target="legacyMode" class="{{ not isLegacy ? 'd-none' : '' }}">
+        <div class="alert alert-info d-flex align-items-center justify-content-between">
+            <div>
+                <i class="ti ti-info-circle me-1"></i>
+                Ten szablon używa ręcznego kodu HTML.
             </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#switchToCanvas">
+                <i class="ti ti-artboard me-1"></i>Przełącz na edytor wizualny
+            </button>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="legacy_tresc_html">Treść HTML szablonu</label>
+            <textarea class="form-control" id="legacy_tresc_html" data-szablon-editor-target="legacyTextarea" rows="20"
+                      style="font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; tab-size: 4;">{{ szablon is defined and szablon ? szablon.trescHtml : '' }}</textarea>
+            <small class="form-hint">Pełny dokument HTML z placeholderami [[...]] do podmiany.</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Dostępne placeholdery</label>
+            <div class="d-flex flex-wrap gap-1">
+                {% for placeholder, opis in placeholders %}
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            data-action="szablon-editor#insertPlaceholderLegacy"
+                            data-placeholder="{{ placeholder }}" title="{{ opis }}">
+                        {{ placeholder }}
+                    </button>
+                {% endfor %}
+            </div>
+            <small class="form-hint">Kliknij placeholder aby wstawić go na pozycji kursora w edytorze.</small>
+        </div>
+
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-info" data-action="szablon-editor#previewPdf">
+                <i class="ti ti-file-type-pdf me-1"></i>Podgląd PDF
+            </button>
+            <small class="form-hint d-block mt-1">Generuje PDF z przykładowymi danymi na podstawie bieżącej treści.</small>
         </div>
     </div>
 
-    {# ── Canvas + Properties panel ── #}
-    <div class="row mb-3">
-        <div class="col">
-            <div style="background: #e9ecef; padding: 20px; border-radius: 4px; overflow: auto; display: flex; justify-content: center;">
-                <div style="box-shadow: 0 2px 12px rgba(0,0,0,0.15);">
-                    <canvas data-szablon-editor-target="canvas"></canvas>
+    {# ── Canvas: tryb wizualny ── #}
+    <div data-szablon-editor-target="canvasMode" class="{{ isLegacy ? 'd-none' : '' }}">
+
+        {% if isLegacy %}
+            <div class="alert alert-warning d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="ti ti-artboard me-1"></i>
+                    Edytor wizualny — nowy szablon zostanie zapisany w formacie kanwy.
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#switchToLegacy">
+                    <i class="ti ti-code me-1"></i>Wróć do edytora HTML
+                </button>
+            </div>
+        {% endif %}
+
+        {# ── Toolbar ── #}
+        <div class="card mb-3" data-szablon-editor-target="toolbar">
+            <div class="card-body py-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    {# Add objects #}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addText" title="Dodaj tekst">
+                            <i class="ti ti-text-size"></i> Tekst
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addLine" title="Dodaj linię">
+                            <i class="ti ti-line"></i> Linia
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addRect" title="Dodaj prostokąt">
+                            <i class="ti ti-square"></i> Prostokąt
+                        </button>
+                    </div>
+
+                    <div class="vr"></div>
+
+                    {# Placeholders #}
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <select class="form-select form-select-sm" data-szablon-editor-target="placeholderSelect" style="max-width: 220px;">
+                            <option value="">-- Placeholder --</option>
+                            {% for placeholder, opis in placeholders %}
+                                <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#addPlaceholder">
+                            Wstaw
+                        </button>
+                    </div>
+
+                    <div class="vr"></div>
+
+                    {# Formatting #}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
+                            <i class="ti ti-bold"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
+                            <i class="ti ti-italic"></i>
+                        </button>
+                    </div>
+
+                    {# Font size #}
+                    <div class="input-group input-group-sm" style="width: 90px;">
+                        <input type="number" class="form-control form-control-sm" min="6" max="200" value="12"
+                               data-szablon-editor-target="fontSize"
+                               data-action="change->szablon-editor#updateFontSize"
+                               title="Rozmiar czcionki">
+                    </div>
+
+                    <div class="vr"></div>
+
+                    {# Alignment #}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignLeft" title="Do lewej">
+                            <i class="ti ti-align-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
+                            <i class="ti ti-align-center"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignRight" title="Do prawej">
+                            <i class="ti ti-align-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="vr"></div>
+
+                    {# Delete #}
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#deleteSelected" title="Usuń zaznaczone (Delete)">
+                        <i class="ti ti-trash"></i> Usuń
+                    </button>
+
+                    {# Spacer #}
+                    <div class="ms-auto"></div>
+
+                    {# Preview PDF #}
+                    <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
+                        <i class="ti ti-file-type-pdf"></i> Podgląd PDF
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="col-auto" style="width: 220px;">
-            <div class="card d-none" data-szablon-editor-target="propPanel">
-                <div class="card-header py-2">
-                    <h4 class="card-title mb-0">Właściwości</h4>
+
+        {# ── Canvas + Properties panel ── #}
+        <div class="row mb-3">
+            <div class="col">
+                <div style="background: #e9ecef; padding: 20px; border-radius: 4px; overflow: auto; display: flex; justify-content: center;">
+                    <div style="box-shadow: 0 2px 12px rgba(0,0,0,0.15);">
+                        <canvas data-szablon-editor-target="canvas"></canvas>
+                    </div>
                 </div>
-                <div class="card-body py-2">
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Rozmiar czcionki</label>
-                        <input type="number" class="form-control form-control-sm" min="6" max="200"
-                               data-szablon-editor-target="fontSize"
-                               data-action="change->szablon-editor#updateFontSize">
+            </div>
+            <div class="col-auto" style="width: 220px;">
+                <div class="card d-none" data-szablon-editor-target="propPanel">
+                    <div class="card-header py-2">
+                        <h4 class="card-title mb-0">Właściwości</h4>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Kolor</label>
-                        <input type="color" class="form-control form-control-sm form-control-color"
-                               data-szablon-editor-target="fontColor"
-                               data-action="change->szablon-editor#updateFontColor"
-                               value="#000000">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Pozycja X</label>
-                        <input type="number" class="form-control form-control-sm"
-                               data-szablon-editor-target="propX"
-                               data-action="change->szablon-editor#updatePropX">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Pozycja Y</label>
-                        <input type="number" class="form-control form-control-sm"
-                               data-szablon-editor-target="propY"
-                               data-action="change->szablon-editor#updatePropY">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Szerokość</label>
-                        <input type="number" class="form-control form-control-sm"
-                               data-szablon-editor-target="propW" readonly>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label mb-0 small">Wysokość</label>
-                        <input type="number" class="form-control form-control-sm"
-                               data-szablon-editor-target="propH" readonly>
+                    <div class="card-body py-2">
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Rozmiar czcionki</label>
+                            <input type="number" class="form-control form-control-sm" min="6" max="200"
+                                   data-szablon-editor-target="fontSize"
+                                   data-action="change->szablon-editor#updateFontSize">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Kolor</label>
+                            <input type="color" class="form-control form-control-sm form-control-color"
+                                   data-szablon-editor-target="fontColor"
+                                   data-action="change->szablon-editor#updateFontColor"
+                                   value="#000000">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Pozycja X</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   data-szablon-editor-target="propX"
+                                   data-action="change->szablon-editor#updatePropX">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Pozycja Y</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   data-szablon-editor-target="propY"
+                                   data-action="change->szablon-editor#updatePropY">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Szerokość</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   data-szablon-editor-target="propW" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Wysokość</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   data-szablon-editor-target="propH" readonly>
+                        </div>
                     </div>
                 </div>
             </div>
