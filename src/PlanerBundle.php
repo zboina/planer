@@ -91,6 +91,21 @@ class PlanerBundle extends AbstractBundle
             }
         }
 
+        // Auto-add sortablejs to importmap if missing
+        $importmapFile = $projectDir . '/importmap.php';
+        if (file_exists($importmapFile)) {
+            $content = file_get_contents($importmapFile);
+            if (!str_contains($content, "'sortablejs'")) {
+                $entry = <<<'PHP'
+    'sortablejs' => [
+        'version' => '1.15.6',
+    ],
+PHP;
+                $content = str_replace('];', $entry . "\n];", $content);
+                file_put_contents($importmapFile, $content);
+            }
+        }
+
         // Auto-create routes config in host project if missing
         $routesFile = $projectDir . '/config/routes/planer.yaml';
         if (!file_exists($routesFile)) {
