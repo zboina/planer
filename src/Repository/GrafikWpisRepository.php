@@ -85,6 +85,63 @@ class GrafikWpisRepository extends ServiceEntityRepository
         return $result;
     }
 
+    /**
+     * For users in non-main departments, fetch their main-department entries
+     * where typZmiany.tylkoGlowny = true, for the given month.
+     *
+     * @param int[] $userIds
+     * @param int[] $glownyDeptMap userId => glownyDepartamentId
+     * @return array<int, array<int, GrafikWpis>> [userId][dayOfMonth] => GrafikWpis
+     */
+    public function findGlownyTylkoForUsers(array $userIds, array $glownyDeptMap, int $rok, int $miesiac): array
+    {
+        if (empty($userIds) || empty($glownyDeptMap)) {
+            return [];
+        }
+
+        $from = new \DateTime(sprintf('%04d-%02d-01', $rok, $miesiac));
+        $to = (clone $from)->modify('last day of this month');
+
+        $qb = $this->createQueryBuilder('gw')
+            ->select('gw', 'tz')
+            ->join('gw.typZmiany', 'tz')
+            ->where('gw.data BETWEEN :from AND :to')
+            ->andWhere('tz.tylkoGlowny = true')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to);
+
+        // Build OR conditions: (user=X AND dept=Y) OR (user=Z AND dept=W) ...
+        $orParts = [];
+        $i = 0;
+        foreach ($glownyDeptMap as $userId => $deptId) {
+            if (!in_array($userId, $userIds, true)) {
+                continue;
+            }
+            $orParts[] = $qb->expr()->andX(
+                $qb->expr()->eq('IDENTITY(gw.user)', ':u' . $i),
+                $qb->expr()->eq('IDENTITY(gw.departament)', ':d' . $i),
+            );
+            $qb->setParameter('u' . $i, $userId);
+            $qb->setParameter('d' . $i, $deptId);
+            $i++;
+        }
+
+        if (empty($orParts)) {
+            return [];
+        }
+
+        $qb->andWhere($qb->expr()->orX(...$orParts));
+
+        $grid = [];
+        foreach ($qb->getQuery()->getResult() as $wpis) {
+            $userId = $wpis->getUser()->getId();
+            $day = (int) $wpis->getData()->format('j');
+            $grid[$userId][$day] = $wpis;
+        }
+
+        return $grid;
+    }
+
     public function findOneByUserDataDepartament(object $user, \DateTimeInterface $data, Departament $departament): ?GrafikWpis
     {
         return $this->createQueryBuilder('gw')

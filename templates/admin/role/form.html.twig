@@ -1,0 +1,43 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Przypisz rolę{% endblock %}
+{% block panel_heading %}Przypisz rolę workflow{% endblock %}
+
+{% block panel_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if globalKroki is empty %}
+            <div class="alert alert-warning">
+                Brak kroków workflow typu <strong>Globalny</strong>. Najpierw dodaj kroki workflow z typem "Globalny" w zakładce
+                <a href="{{ path('planer_admin_workflow') }}">Workflow</a>.
+            </div>
+        {% else %}
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label required">Użytkownik</label>
+                    <select name="user_id" class="form-select" required>
+                        <option value="">-- Wybierz --</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}">{{ planer_name(user) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Rola (krok workflow)</label>
+                    <select name="rola" class="form-select" required>
+                        <option value="">-- Wybierz --</option>
+                        {% for krok in globalKroki %}
+                            <option value="{{ krok.key }}">{{ krok.label }} ({{ krok.key }})</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-hint">Wybierz krok workflow, na którym użytkownik będzie mógł akceptować/odrzucać podania.</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Przypisz rolę</button>
+                    <a href="{{ path('planer_admin_role') }}" class="btn">Anuluj</a>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

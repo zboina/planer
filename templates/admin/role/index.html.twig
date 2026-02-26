@@ -1,0 +1,77 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Role workflow{% endblock %}
+{% block panel_heading %}Przypisanie ról workflow{% endblock %}
+
+{% block panel_actions %}
+    <a href="{{ path('planer_admin_role_new') }}" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 5l0 14"/>
+            <path d="M5 12l14 0"/>
+        </svg>
+        Przypisz rolę
+    </a>
+{% endblock %}
+
+{% block panel_content %}
+<div class="mb-3">
+    <div class="alert alert-info">
+        Role workflow przypisują użytkowników do kroków akceptacji typu <strong>Globalny</strong>.
+        Użytkownicy z przypisaną rolą mogą akceptować lub odrzucać podania na odpowiednim etapie.
+    </div>
+</div>
+
+{% if role is empty %}
+    <div class="empty">
+        <p class="empty-title">Brak przypisanych ról</p>
+        <p class="empty-subtitle text-secondary">Przypisz użytkownikom role, aby mogli akceptować podania.</p>
+        <a href="{{ path('planer_admin_role_new') }}" class="btn btn-primary">Przypisz pierwszą rolę</a>
+    </div>
+{% else %}
+    <div class="table-responsive">
+        <table class="table table-vcenter">
+            <thead>
+                <tr>
+                    <th>Użytkownik</th>
+                    <th>Rola (krok workflow)</th>
+                    <th class="text-center" style="width: 100px;">Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rola in role %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm bg-primary-lt me-2">{{ planer_name(rola.user)|first }}</span>
+                                <div>{{ planer_name(rola.user) }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-purple-lt">{{ krokiMap[rola.rola] | default(rola.rola) }}</span>
+                            <code class="ms-1 text-secondary small">{{ rola.rola }}</code>
+                        </td>
+                        <td class="text-center">
+                            <form method="post" action="{{ path('planer_admin_role_delete', {id: rola.id}) }}"
+                                  onsubmit="return confirm('Usunąć to przypisanie roli?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Usuń">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M4 7l16 0"/>
+                                        <path d="M10 11l0 6"/>
+                                        <path d="M14 11l0 6"/>
+                                        <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                        <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+{# Historia podania - compact timeline #}
+{% set logs = logsMap[podanie.id] | default([]) %}
+{% set status = podanie.status %}
+{% set nextStep = podanie_next_step(status) %}
+
+<div class="mt-3">
+    <div class="d-flex align-items-center mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary me-1" width="16" height="16" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 8l0 4l2 2"/>
+            <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+        </svg>
+        <span class="text-secondary small fw-bold text-uppercase">Przebieg</span>
+    </div>
+    <div class="historia-timeline">
+        {# Złożenie #}
+        <div class="historia-item">
+            <span class="historia-dot bg-yellow"></span>
+            <span class="text-secondary small">{{ podanie.createdAt|date('d.m H:i') }}</span>
+            <span class="small">Złożone</span>
+            <span class="text-secondary small">{{ planer_name(podanie.user) }}</span>
+        </div>
+
+        {# Logi przejść workflow #}
+        {% for log in logs %}
+            {% if log.transition starts with 'akceptuj_' %}
+                {% set dotColor = 'bg-success' %}
+                {% set label = podanie_status_label(log.toStatus) %}
+            {% elseif log.transition starts with 'odrzuc_' %}
+                {% set dotColor = 'bg-danger' %}
+                {% set label = 'Odrzucone' %}
+            {% elseif log.transition == 'anuluj' %}
+                {% set dotColor = 'bg-secondary' %}
+                {% set label = 'Anulowane' %}
+            {% else %}
+                {% set dotColor = 'bg-primary' %}
+                {% set label = log.transition %}
+            {% endif %}
+            <div class="historia-item">
+                <span class="historia-dot {{ dotColor }}"></span>
+                <span class="text-secondary small">{{ log.createdAt|date('d.m H:i') }}</span>
+                <span class="small fw-medium">{{ label }}</span>
+                {% if log.user %}<span class="text-secondary small">{{ planer_name(log.user) }}</span>{% endif %}
+                {% if log.komentarz %}<span class="text-danger small fst-italic">— {{ log.komentarz }}</span>{% endif %}
+            </div>
+        {% endfor %}
+
+        {# Aktualny etap — gdzie teraz jest podanie #}
+        {% if nextStep %}
+            <div class="historia-item historia-pending">
+                <span class="historia-dot-ring"></span>
+                <span class="small text-primary fw-medium">Oczekuje na: {{ nextStep }}</span>
+            </div>
+        {% elseif status == 'zatwierdzony' %}
+            <div class="historia-item">
+                <span class="historia-dot bg-green"></span>
+                <span class="small text-success fw-medium">Zatwierdzony</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.historia-timeline { display: flex; flex-direction: column; gap: 0; padding-left: 8px; }
+.historia-item { display: flex; align-items: center; gap: 0.5rem; padding: 4px 0; position: relative; padding-left: 26px; }
+.historia-item:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 20px; bottom: -4px; width: 1px; background: var(--tblr-border-color); }
+.historia-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; position: absolute; left: 8px; }
+.historia-dot-ring { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; position: absolute; left: 7px; border: 2px solid var(--tblr-primary); background: transparent; }
+.historia-pending { animation: pulse-ring 2s ease-in-out infinite; }
+@keyframes pulse-ring { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+</style>

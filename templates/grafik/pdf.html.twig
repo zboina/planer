@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { margin: 1cm; size: A4 landscape; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 7pt;
+            line-height: 1.2;
+            color: #1a1a1a;
+        }
+
+        .report-header {
+            width: 100%;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #206bc4;
+            padding-bottom: 6px;
+        }
+        .report-header td { vertical-align: bottom; }
+        .report-header .left { text-align: left; width: 65%; }
+        .report-header .right { text-align: right; width: 35%; color: #666; font-size: 6.5pt; }
+        .report-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #206bc4;
+            margin: 0;
+        }
+        .report-subtitle {
+            font-size: 8pt;
+            color: #555;
+            margin: 2px 0 0 0;
+        }
+
+        .grafik-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 6pt;
+        }
+        .grafik-table th,
+        .grafik-table td {
+            border: 1px solid #bbb;
+            padding: 2px 0;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .grafik-table thead th {
+            background: #d6e4f0;
+            color: #333;
+            font-weight: bold;
+            font-size: 5.5pt;
+        }
+        .grafik-table .col-name {
+            text-align: left;
+            font-weight: bold;
+            white-space: nowrap;
+            padding-left: 3px;
+            font-size: 7pt;
+        }
+        .grafik-table thead .col-name {
+            text-align: left;
+            padding-left: 3px;
+        }
+        .grafik-table .col-dw {
+            background-color: #eaf2fa;
+            font-weight: bold;
+            color: #206bc4;
+        }
+        .grafik-table thead .col-dw {
+            background: #bcd4ec;
+            color: #1a3a5c;
+        }
+
+        .day-header {
+            line-height: 1.1;
+        }
+        .day-num {
+            font-size: 5.5pt;
+            font-weight: 700;
+        }
+        .day-name {
+            font-size: 4.5pt;
+            color: #888;
+        }
+
+        .weekend-header {
+            background: #e8edf2;
+        }
+        .weekend-header .day-num {
+            color: #666;
+        }
+        .weekend-header .day-name {
+            color: #999;
+        }
+        .holiday-header {
+            background: #f5dada;
+        }
+        .holiday-header .day-num {
+            color: #b33;
+        }
+        .holiday-header .day-name {
+            color: #c66;
+        }
+
+        .weekend-cell {
+            background-color: #f5f5f5;
+        }
+        .holiday-cell {
+            background-color: #fdf0f0;
+        }
+
+        .shift-cell {
+            font-weight: 700;
+            font-size: 6pt;
+        }
+
+        .grafik-table tbody tr:nth-child(even) .col-name {
+            background: #f7f9fc;
+        }
+
+        .legenda {
+            margin-top: 8px;
+            font-size: 6.5pt;
+        }
+        .legenda-title {
+            font-weight: bold;
+            color: #206bc4;
+            margin-bottom: 3px;
+            font-size: 7pt;
+        }
+        .legenda-item {
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 2px;
+        }
+        .legenda-color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            vertical-align: middle;
+            margin-right: 2px;
+            border: 1px solid #999;
+        }
+
+        .footer {
+            margin-top: 10px;
+            font-size: 6pt;
+            color: #999;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<table class="report-header" cellpadding="0" cellspacing="0">
+    <tr>
+        <td class="left">
+            <div class="report-title">Grafik pracy &mdash; {{ departament.nazwa }}</div>
+            <div class="report-subtitle">{{ miesiacNazwa }} {{ rok }}{% if firmaNazwa %} &mdash; {{ firmaNazwa }}{% endif %}</div>
+        </td>
+        <td class="right">
+            Wygenerowano: {{ dataGenerowania|date('d.m.Y H:i') }}
+        </td>
+    </tr>
+</table>
+
+<table class="grafik-table">
+    <colgroup>
+        <col style="width: 18%;">
+        {% for d in dni %}<col style="width: {{ (80 / dniWMiesiacu)|round(2) }}%;">{% endfor %}
+        <col style="width: 2%;">
+    </colgroup>
+    <thead>
+        <tr>
+            <th class="col-name">Pracownik</th>
+            {% for d in dni %}
+                <th class="day-header {% if d.swieto %}holiday-header{% elseif d.weekend %}weekend-header{% endif %}"
+                    {% if d.swietoNazwa %}title="{{ d.swietoNazwa }}"{% endif %}>
+                    <div class="day-num">{{ d.numer }}</div>
+                    <div class="day-name">{{ d.dzienTygodnia }}</div>
+                </th>
+            {% endfor %}
+            <th class="col-dw">DW</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in users %}
+            {% set u = entry.user %}
+            <tr>
+                <td class="col-name">{{ planer_name(u) }}</td>
+                {% for d in dni %}
+                    {% set wpis = grid[u.id][d.numer] ?? null %}
+                    {% if wpis %}
+                        <td class="shift-cell" style="background-color: {{ wpis.typZmiany.kolor }}; color: {{ wpis.typZmiany.kolorTekstu }};">{{ wpis.typZmiany.skrot }}</td>
+                    {% elseif d.swieto %}
+                        <td class="holiday-cell"></td>
+                    {% elseif d.weekend %}
+                        <td class="weekend-cell"></td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                {% endfor %}
+                <td class="col-dw">{{ dniWolnePerUser[u.id] ?? 0 }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="legenda">
+    <div class="legenda-title">Legenda</div>
+    {% for typ in typyZmian %}
+        <span class="legenda-item">
+            <span class="legenda-color" style="background-color: {{ typ.kolor }};"></span>
+            <strong>{{ typ.skrot }}</strong> &ndash; {{ typ.nazwa }}{% if typ.godzinyOd %} ({{ typ.godzinyOd }}&ndash;{{ typ.godzinyDo }}){% endif %}
+        </span>
+    {% endfor %}
+</div>
+
+<div class="footer">
+    {% if firmaNazwa %}{{ firmaNazwa }} &mdash; {% endif %}Grafik pracy &mdash; {{ departament.nazwa }} ({{ departament.skrot }}) &mdash; {{ miesiacNazwa }} {{ rok }}
+</div>
+
+</body>
+</html>

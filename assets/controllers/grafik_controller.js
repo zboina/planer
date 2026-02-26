@@ -408,7 +408,7 @@ export default class extends Controller {
 
     cellTargetConnected(cell) {
         const isEditor = this.canEditValue === 'true';
-        const cellSkrot = cell.textContent.trim();
+        const cellSkrot = this._getCellText(cell);
         const cellTyp = cellSkrot ? this.typyZmianValue.find(t => t.skrot === cellSkrot) : null;
         const isOwnPodanieCell = !isEditor
             && this.hasCurrentUserIdValue
@@ -675,7 +675,7 @@ export default class extends Controller {
                 // Group selected cells by their type's szablonPodania
                 const podanieTypes = new Map(); // szablonPodania → {typ, cells}
                 for (const c of this._selected) {
-                    const skrot = c.textContent.trim();
+                    const skrot = this._getCellText(c);
                     const typ = skrot ? this.typyZmianValue.find(t => t.skrot === skrot) : null;
                     if (typ && (typ.szablonId || typ.szablonPodania)) {
                         const szKey = typ.szablonId ? ('id_' + typ.szablonId) : typ.szablonPodania;
@@ -778,7 +778,7 @@ export default class extends Controller {
 
         const uid = anchorCell.dataset.userId;
         const podanieId = anchorCell.dataset.podanieId;
-        const cellSkrot = anchorCell.textContent.trim();
+        const cellSkrot = this._getCellText(anchorCell);
         const cellTyp = cellSkrot ? this.typyZmianValue.find(t => t.skrot === cellSkrot) : null;
         const hasSzablon = cellTyp?.szablonId || cellTyp?.szablonPodania;
         const label = (cellTyp?.szablonPodania === 'urlop' && !cellTyp?.szablonId) ? 'podanie' : 'wniosek';
@@ -965,9 +965,9 @@ export default class extends Controller {
             const prevKey = uid + '-' + (day - 1);
             const prevCell = this._cellMap[prevKey];
 
-            if (prevCell && prevCell.textContent.trim()) {
+            if (prevCell && this._getCellText(prevCell)) {
                 // Find the type from the prev cell's text
-                const prevSkrot = prevCell.textContent.trim();
+                const prevSkrot = this._getCellText(prevCell);
                 const typ = this.typyZmianValue.find(t => t.skrot === prevSkrot);
                 if (typ) {
                     if (!byType[typ.id]) byType[typ.id] = { typ, wpisy: [] };
@@ -1016,12 +1016,12 @@ export default class extends Controller {
             affectedUsers.add(String(r.userId));
 
             if (r.skrot) {
-                cell.textContent = r.skrot;
+                this._setCellText(cell, r.skrot);
                 cell.style.backgroundColor = r.kolor;
                 cell.style.color = this._contrastColor(r.kolor);
                 cell.classList.remove('gc-empty');
             } else {
-                cell.textContent = '';
+                this._setCellText(cell, '');
                 cell.style.backgroundColor = '';
                 cell.style.color = '';
                 cell.classList.add('gc-empty');
@@ -1053,7 +1053,7 @@ export default class extends Controller {
                 return;
             }
             if (data.success) {
-                cell.textContent = data.skrot;
+                this._setCellText(cell, data.skrot);
                 cell.style.backgroundColor = data.kolor;
                 cell.style.color = this._contrastColor(data.kolor);
                 cell.classList.remove('gc-empty');
@@ -1077,7 +1077,7 @@ export default class extends Controller {
             });
             const data = await res.json();
             if (data.success) {
-                cell.textContent = '';
+                this._setCellText(cell, '');
                 cell.style.backgroundColor = '';
                 cell.style.color = '';
                 cell.classList.add('gc-empty');
@@ -1092,7 +1092,7 @@ export default class extends Controller {
         const uid = String(userId);
         let count = 0;
         for (const [key, cell] of Object.entries(this._cellMap)) {
-            if (key.startsWith(uid + '-') && cell.textContent.trim() === 'W') {
+            if (key.startsWith(uid + '-') && this._getCellText(cell) === 'W') {
                 count++;
             }
         }
@@ -1100,6 +1100,25 @@ export default class extends Controller {
         if (dwCell) {
             dwCell.textContent = count;
         }
+    }
+
+    /**
+     * Set cell text content while preserving .glowny-indicator child.
+     */
+    _setCellText(cell, text) {
+        const indicator = cell.querySelector('.glowny-indicator')
+        cell.textContent = text
+        if (indicator) cell.appendChild(indicator)
+    }
+
+    /**
+     * Get cell text content excluding .glowny-indicator.
+     */
+    _getCellText(cell) {
+        const clone = cell.cloneNode(true)
+        const ind = clone.querySelector('.glowny-indicator')
+        if (ind) ind.remove()
+        return clone.textContent.trim()
     }
 
     _contrastColor(hex) {

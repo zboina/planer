@@ -17,6 +17,9 @@ services:
             $logoutRoute: '%planer.logout_route%'
             $adminRole: '%planer.admin_role%'
             $resolver: '@Planer\PlanerBundle\Service\PlanerUserResolver'
+            $modulChecker: '@Planer\PlanerBundle\Service\ModulChecker'
+            $workflowFactory: '@Planer\PlanerBundle\Service\PodanieWorkflowFactory'
+            $statusProvider: '@Planer\PlanerBundle\Service\PodanieStatusProvider'
         tags: ['twig.extension']
 
     Planer\PlanerBundle\Service\PlanerUserResolver:

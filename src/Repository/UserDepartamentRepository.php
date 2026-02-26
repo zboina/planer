@@ -73,6 +73,11 @@ class UserDepartamentRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findGlownyForUser(object $user): ?UserDepartament
+    {
+        return $this->findOneBy(['user' => $user, 'czyGlowny' => true]);
+    }
+
     public function countDistinctUsers(): int
     {
         return (int) $this->createQueryBuilder('ud')

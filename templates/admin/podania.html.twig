@@ -11,70 +11,127 @@
     </div>
 {% else %}
     <div class="table-responsive">
-        <table class="table table-vcenter table-bordered table-hover mb-0">
+        <table class="table table-vcenter table-hover mb-0">
             <thead>
                 <tr>
                     <th>Pracownik</th>
                     <th>Departament</th>
                     <th>Rodzaj</th>
-                    <th>Typ</th>
-                    <th>Rodzaj urlopu</th>
-                    <th class="text-center">Od</th>
-                    <th class="text-center">Do</th>
-                    <th>Zastępca</th>
-                    <th>Telefon</th>
+                    <th class="text-center">Okres</th>
+                    <th class="text-center">Status</th>
                     <th class="text-center">Data złożenia</th>
-                    <th class="text-center" style="width: 160px;">Akcje</th>
+                    <th class="text-center" style="width: 200px;">Akcje</th>
                 </tr>
             </thead>
             <tbody>
                 {% for podanie in podania %}
                     {% set szablon = podanie.typZmiany ? podanie.typZmiany.szablonPodania : 'urlop' %}
-                    <tr>
-                        <td class="text-nowrap">{{ planer_name(podanie.user) }}</td>
-                        <td>{{ podanie.departament.nazwa }}</td>
-                        <td>
+                    {% set status = podanie.status %}
+                    {% set orphan = podanie_is_orphan(podanie) %}
+                    {% set _modal = '#detailModal' ~ podanie.id %}
+                    <tr class="cursor-pointer">
+                        <td class="text-nowrap" data-bs-toggle="modal" data-bs-target="{{ _modal }}">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm bg-primary-lt me-2">{{ planer_name(podanie.user)|first }}</span>
+                                <div>{{ planer_name(podanie.user) }}</div>
+                            </div>
+                        </td>
+                        <td data-bs-toggle="modal" data-bs-target="{{ _modal }}">{{ podanie.departament.nazwa }}</td>
+                        <td data-bs-toggle="modal" data-bs-target="{{ _modal }}">
                             {% if szablon == 'praca_zdalna' %}
                                 <span class="badge bg-cyan-lt">Praca zdalna</span>
                             {% elseif szablon == 'nadgodziny' %}
                                 <span class="badge bg-orange-lt">Nadgodziny</span>
+                            {% elseif szablon == 'opieka' %}
+                                <span class="badge bg-pink-lt">Opieka</span>
                             {% else %}
                                 <span class="badge bg-blue-lt">Urlop</span>
                             {% endif %}
                         </td>
-                        <td>{{ podanie.typPodania ? podanie.typPodania.nazwa : '—' }}</td>
-                        <td>{{ podanie.rodzajUrlopu ? podanie.rodzajUrlopu.nazwa : '—' }}</td>
-                        <td class="text-center">{{ podanie.dataOd|date('d.m.Y') }}</td>
-                        <td class="text-center">{{ podanie.dataDo|date('d.m.Y') }}</td>
-                        <td>{{ podanie.zastepca ?: '—' }}</td>
-                        <td>{{ podanie.telefon ?: '—' }}</td>
-                        <td class="text-center text-secondary">{{ podanie.createdAt|date('d.m.Y H:i') }}</td>
+                        <td class="text-center text-nowrap" data-bs-toggle="modal" data-bs-target="{{ _modal }}">
+                            {{ podanie.dataOd|date('d.m.Y') }} — {{ podanie.dataDo|date('d.m.Y') }}
+                        </td>
+                        <td class="text-center" data-bs-toggle="modal" data-bs-target="{{ _modal }}">
+                            {% set nextStep = podanie_next_step(status) %}
+                            {% if nextStep %}
+                                <span class="badge {{ podanie_status_badge(status) }}">Do akceptacji: {{ nextStep }}</span>
+                            {% else %}
+                                <span class="badge {{ podanie_status_badge(status) }}">{{ podanie_status_label(status) }}</span>
+                            {% endif %}
+                            {% if orphan %}
+                                <span class="badge bg-warning-lt ms-1" title="Status nierozpoznany w aktualnym workflow — krok został usunięty">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="14" height="14" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/>
+                                        <path d="M12 16h.01"/>
+                                    </svg>
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center text-secondary" data-bs-toggle="modal" data-bs-target="{{ _modal }}">{{ podanie.createdAt|date('d.m.Y H:i') }}</td>
                         <td class="text-center">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a href="{{ path('planer_admin_podanie_pdf', {id: podanie.id}) }}" class="btn btn-sm btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                            <div class="d-flex gap-1 justify-content-center flex-nowrap">
+                                {% if podanie_can(podanie, 'akceptuj') %}
+                                    <form method="post" action="{{ path('planer_admin_podanie_akceptuj', {id: podanie.id}) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-success" title="Akceptuj">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M5 12l5 5l10 -10"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                {% if podanie_can(podanie, 'odrzuc') %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Odrzuć"
+                                            data-bs-toggle="modal" data-bs-target="#odrzucModal{{ podanie.id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M18 6l-12 12"/>
+                                            <path d="M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                                {% if podanie_can(podanie, 'anuluj') %}
+                                    <form method="post" action="{{ path('planer_admin_podanie_anuluj', {id: podanie.id}) }}"
+                                          onsubmit="return confirm('Anulować to podanie?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Anuluj">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
+                                                <path d="M18 6l-12 12"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <a href="{{ path('planer_admin_podanie_pdf', {id: podanie.id}) }}" class="btn btn-sm btn-primary" title="Pobierz PDF">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
                                          stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                         <path d="M12 17v-14"/>
                                         <path d="M9 14l3 3l3 -3"/>
                                         <path d="M5 21h14"/>
                                     </svg>
-                                    PDF
                                 </a>
-                                <form method="post" action="{{ path('planer_admin_podanie_delete', {id: podanie.id}) }}"
-                                      onsubmit="return confirm('Usunąć to podanie?');" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
-                                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <path d="M4 7l16 0"/>
-                                            <path d="M10 11l0 6"/>
-                                            <path d="M14 11l0 6"/>
-                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
-                                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
-                                        </svg>
-                                    </button>
-                                </form>
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <form method="post" action="{{ path('planer_admin_podanie_delete', {id: podanie.id}) }}"
+                                          onsubmit="return confirm('Usunąć to podanie?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Usuń">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                                <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -83,4 +140,284 @@
         </table>
     </div>
 {% endif %}
+
+{# ── Detail modals ───────────────────────────────────────── #}
+{% for podanie in podania %}
+    {% set szablon = podanie.typZmiany ? podanie.typZmiany.szablonPodania : 'urlop' %}
+    {% set status = podanie.status %}
+    {% set orphan = podanie_is_orphan(podanie) %}
+    <div class="modal fade" id="detailModal{{ podanie.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">
+                            {% if szablon == 'praca_zdalna' %}
+                                Wniosek o pracę zdalną
+                            {% elseif szablon == 'nadgodziny' %}
+                                Wniosek o odbiór nadgodzin
+                            {% elseif szablon == 'opieka' %}
+                                Opieka nad dzieckiem
+                            {% else %}
+                                Podanie o urlop
+                            {% endif %}
+                            <span class="badge {{ podanie_status_badge(status) }} ms-2">{{ podanie_status_label(status) }}</span>
+                        </h5>
+                        <div class="text-secondary small">Nr {{ podanie.id }} &middot; złożono {{ podanie.createdAt|date('d.m.Y H:i') }}</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card card-body bg-muted-lt">
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="avatar avatar-md bg-primary-lt me-3">{{ planer_name(podanie.user)|first }}</span>
+                                    <div>
+                                        <div class="fw-bold">{{ planer_name(podanie.user) }}</div>
+                                        <div class="text-secondary small">{{ podanie.departament.nazwa }}</div>
+                                    </div>
+                                </div>
+                                <div class="datagrid">
+                                    {% set adres = planer_adres(podanie.user) %}
+                                    {% if adres %}
+                                        <div class="datagrid-item">
+                                            <div class="datagrid-title">Adres</div>
+                                            <div class="datagrid-content">{{ adres }}</div>
+                                        </div>
+                                    {% endif %}
+                                    {% if podanie.telefon %}
+                                        <div class="datagrid-item">
+                                            <div class="datagrid-title">Telefon kontaktowy</div>
+                                            <div class="datagrid-content">{{ podanie.telefon }}</div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="datagrid">
+                                {% if podanie.typPodania %}
+                                    <div class="datagrid-item">
+                                        <div class="datagrid-title">Typ podania</div>
+                                        <div class="datagrid-content">{{ podanie.typPodania.nazwa }}</div>
+                                    </div>
+                                {% endif %}
+                                {% if podanie.rodzajUrlopu %}
+                                    <div class="datagrid-item">
+                                        <div class="datagrid-title">Rodzaj urlopu</div>
+                                        <div class="datagrid-content">{{ podanie.rodzajUrlopu.nazwa }}</div>
+                                    </div>
+                                {% endif %}
+                                <div class="datagrid-item">
+                                    <div class="datagrid-title">Okres</div>
+                                    <div class="datagrid-content">
+                                        <strong>{{ podanie.dataOd|date('d.m.Y') }}</strong> — <strong>{{ podanie.dataDo|date('d.m.Y') }}</strong>
+                                        {% set diff = podanie.dataDo|date('U') - podanie.dataOd|date('U') %}
+                                        {% set days = ((diff / 86400)|round(0, 'floor')) + 1 %}
+                                        <span class="text-secondary ms-1">({{ days }} {{ days == 1 ? 'dzień' : 'dni' }})</span>
+                                    </div>
+                                </div>
+                                {% if podanie.zastepca %}
+                                    <div class="datagrid-item">
+                                        <div class="datagrid-title">Zastępca</div>
+                                        <div class="datagrid-content">{{ podanie.zastepca }}</div>
+                                    </div>
+                                {% endif %}
+                                {% if podanie.podpis %}
+                                    <div class="datagrid-item">
+                                        <div class="datagrid-title">Podpis</div>
+                                        <div class="datagrid-content">{{ podanie.podpis }}</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if podanie.uzasadnienie %}
+                        <div class="mt-3">
+                            <label class="form-label text-secondary">Uzasadnienie</label>
+                            <div class="card card-body bg-muted-lt py-2 px-3">{{ podanie.uzasadnienie }}</div>
+                        </div>
+                    {% endif %}
+
+                    <hr class="my-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="fw-bold text-secondary small text-uppercase">Status:</span>
+                        <span class="badge {{ podanie_status_badge(status) }}">{{ podanie_status_label(status) }}</span>
+                        {% if podanie.statusPrzez %}
+                            <span class="text-secondary small">
+                                przez {{ planer_name(podanie.statusPrzez) }}
+                                {% if podanie.statusZmienionyAt %}
+                                    &middot; {{ podanie.statusZmienionyAt|date('d.m.Y H:i') }}
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if orphan %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <div class="d-flex">
+                                <div class="me-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/>
+                                        <path d="M12 16h.01"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="alert-title">Status archiwalny</h4>
+                                    <div class="text-secondary">
+                                        To podanie ma status z kroku workflow, który został usunięty.
+                                        Zmień status ręcznie (anuluj) lub przywróć krok w ustawieniach workflow.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if status == 'odrzucony' and podanie.komentarzOdrzucenia %}
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <div class="d-flex">
+                                <div class="me-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
+                                        <path d="M12 9h.01"/>
+                                        <path d="M11 12h1v4h1"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="alert-title">Powód odrzucenia</h4>
+                                    <div class="text-secondary">{{ podanie.komentarzOdrzucenia }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {# ── Historia podania ── #}
+                    {% include '@Planer/podanie/_historia.html.twig' with {podanie: podanie, logsMap: logsMap} only %}
+                </div>
+                <div class="modal-footer">
+                    <div class="d-flex gap-2 w-100 justify-content-between">
+                        <div class="d-flex gap-2">
+                            {% if podanie_can(podanie, 'akceptuj') %}
+                                <form method="post" action="{{ path('planer_admin_podanie_akceptuj', {id: podanie.id}) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-success">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M5 12l5 5l10 -10"/>
+                                        </svg>
+                                        Akceptuj
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {% if podanie_can(podanie, 'odrzuc') %}
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#adminOdrzucModal{{ podanie.id }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                         stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M18 6l-12 12"/>
+                                        <path d="M6 6l12 12"/>
+                                    </svg>
+                                    Odrzuć
+                                </button>
+                            {% endif %}
+                            {% if podanie_can(podanie, 'anuluj') %}
+                                <form method="post" action="{{ path('planer_admin_podanie_anuluj', {id: podanie.id}) }}"
+                                      onsubmit="return confirm('Anulować to podanie?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-outline-secondary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
+                                            <path d="M18 6l-12 12"/>
+                                        </svg>
+                                        Anuluj
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ path('planer_admin_podanie_pdf', {id: podanie.id}) }}" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                     stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M12 17v-14"/>
+                                    <path d="M9 14l3 3l3 -3"/>
+                                    <path d="M5 21h14"/>
+                                </svg>
+                                PDF
+                            </a>
+                            <button type="button" class="btn" data-bs-dismiss="modal">Zamknij</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+{# ── Rejection modals (from table buttons) ───────────────── #}
+{% for podanie in podania %}
+    {% if podanie_can(podanie, 'odrzuc') %}
+        <div class="modal fade" id="odrzucModal{{ podanie.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="post" action="{{ path('planer_admin_podanie_odrzuc', {id: podanie.id}) }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Odrzuć podanie</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Podanie: <strong>{{ planer_name(podanie.user) }}</strong> — {{ podanie.dataOd|date('d.m.Y') }} – {{ podanie.dataDo|date('d.m.Y') }}</p>
+                            <div class="mb-3">
+                                <label class="form-label">Powód odrzucenia</label>
+                                <textarea name="komentarz" class="form-control" rows="3" placeholder="Opcjonalny komentarz..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                            <button type="submit" class="btn btn-danger">Odrzuć podanie</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {# Rejection modal from detail modal footer #}
+        <div class="modal fade" id="adminOdrzucModal{{ podanie.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="post" action="{{ path('planer_admin_podanie_odrzuc', {id: podanie.id}) }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Odrzuć podanie</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Podanie: <strong>{{ planer_name(podanie.user) }}</strong> — {{ podanie.dataOd|date('d.m.Y') }} – {{ podanie.dataDo|date('d.m.Y') }}</p>
+                            <div class="mb-3">
+                                <label class="form-label">Powód odrzucenia</label>
+                                <textarea name="komentarz" class="form-control" rows="3" placeholder="Opcjonalny komentarz..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                            <button type="submit" class="btn btn-danger">Odrzuć podanie</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+
+<style>
+    tr.cursor-pointer { cursor: pointer; }
+    tr.cursor-pointer:hover td { background-color: rgba(var(--tblr-primary-rgb), 0.04); }
+    .datagrid { gap: 0.75rem; }
+</style>
+
 {% endblock %}

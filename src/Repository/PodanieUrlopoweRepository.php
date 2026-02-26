@@ -70,4 +70,56 @@ class PodanieUrlopoweRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @param Departament[]|null $departamenty
+     * @return PodanieUrlopowe[]
+     */
+    public function findDoAkceptacji(string $status, ?array $departamenty = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->where('p.status = :status')
+            ->setParameter('status', $status)
+            ->orderBy('p.createdAt', 'DESC');
+
+        if ($departamenty !== null) {
+            if (empty($departamenty)) {
+                return [];
+            }
+            $qb->andWhere('p.departament IN (:depts)')
+                ->setParameter('depts', $departamenty);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return string[]
+     */
+    public function findDistinctStatuses(): array
+    {
+        $rows = $this->createQueryBuilder('p')
+            ->select('DISTINCT p.status')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return $rows;
+    }
+
+    /**
+     * @param string[] $excludeStatuses
+     * @return PodanieUrlopowe[]
+     */
+    public function findAllExcludingStatuses(array $excludeStatuses): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->orderBy('p.createdAt', 'DESC');
+
+        if (!empty($excludeStatuses)) {
+            $qb->andWhere('p.status NOT IN (:excluded)')
+                ->setParameter('excluded', $excludeStatuses);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

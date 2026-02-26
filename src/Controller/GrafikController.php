@@ -2,6 +2,8 @@
 
 namespace Planer\PlanerBundle\Controller;
 
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\GrafikWpis;
 use Planer\PlanerBundle\Entity\TypZmiany;
@@ -10,14 +12,17 @@ use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
 use Planer\PlanerBundle\Repository\PodanieUrlopoweRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
+use Planer\PlanerBundle\Service\ModulChecker;
 use Planer\PlanerBundle\Service\PolishHolidayService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Twig\Environment;
 
 #[Route('/planer')]
 #[IsGranted('ROLE_USER')]
@@ -34,6 +39,7 @@ class GrafikController extends AbstractController
         PolishHolidayService $holidayService,
         DzienWolnyFirmyRepository $dzienWolnyRepo,
         PodanieUrlopoweRepository $podanieRepo,
+        ModulChecker $modulChecker,
     ): Response {
         $currentUser = $this->getUser();
         $isAdmin = $this->isGranted('ROLE_ADMIN');
@@ -104,6 +110,20 @@ class GrafikController extends AbstractController
 
         $grid = $grafikWpisRepo->findForDepartamentAndMonth($departament, $rok, $miesiac);
 
+        // For non-main users, find their main-dept "tylkoGlowny" entries to show as indicators
+        $notGlownyUserIds = [];
+        $glownyDeptMap = []; // userId => glownyDepartamentId
+        foreach ($userDepartamenty as $ud) {
+            if (!$ud->isCzyGlowny()) {
+                $notGlownyUserIds[] = $ud->getUser()->getId();
+                $glownyUd = $userDepartamentRepo->findGlownyForUser($ud->getUser());
+                if ($glownyUd) {
+                    $glownyDeptMap[$ud->getUser()->getId()] = $glownyUd->getDepartament()->getId();
+                }
+            }
+        }
+        $glownyGrid = $grafikWpisRepo->findGlownyTylkoForUsers($notGlownyUserIds, $glownyDeptMap, $rok, $miesiac);
+
         $typyZmianAll = $em->getRepository(TypZmiany::class)->findBy([], ['kolejnosc' => 'ASC']);
         $typyZmian = array_values(array_filter($typyZmianAll, fn(TypZmiany $t) => $t->isAktywny() && $t->isAvailableForDepartament($departament)));
 
@@ -160,17 +180,21 @@ class GrafikController extends AbstractController
             $dniWolnePerUser[$userId] = $count;
         }
 
-        // Podania urlopowe pokrywające ten miesiąc: userId-day → podanieId
+        // Podania urlopowe pokrywające ten miesiąc: userId-day → podanieId + status
         $podaniaRaw = $podanieRepo->findForDepartamentAndMonth($departament, $rok, $miesiac);
         $podaniaMap = []; // "userId-day" => podanieId
+        $podaniaStatusMap = []; // "userId-day" => status string
         foreach ($podaniaRaw as $pod) {
+            $statusValue = $pod->getStatus();
             $uid = $pod->getUser()->getId();
             $pid = $pod->getId();
             $curDay = clone $pod->getDataOd();
             $endDay = $pod->getDataDo();
             while ($curDay <= $endDay) {
                 if ((int) $curDay->format('Y') === $rok && (int) $curDay->format('n') === $miesiac) {
-                    $podaniaMap[$uid . '-' . (int) $curDay->format('j')] = $pid;
+                    $key = $uid . '-' . (int) $curDay->format('j');
+                    $podaniaMap[$key] = $pid;
+                    $podaniaStatusMap[$key] = $statusValue;
                 }
                 $curDay->modify('+1 day');
             }
@@ -197,8 +221,144 @@ class GrafikController extends AbstractController
             'liczbaDniWolnych' => $liczbaDniWolnych,
             'dniWolnePerUser' => $dniWolnePerUser,
             'podaniaMap' => $podaniaMap,
+            'podaniaStatusMap' => $podaniaStatusMap,
             'currentUserId' => $currentUser->getId(),
+            'canAutoPlan' => $modulChecker->hasAccess('auto_planer'),
+            'canPodania' => $modulChecker->hasAccess('moje_podania'),
+            'canDrukuj' => $modulChecker->hasAccess('drukuj_grafik'),
+            'glownyGrid' => $glownyGrid,
         ]);
+    }
+
+    #[Route('/{departamentId}/{rok}/{miesiac}/pdf', name: 'grafik_pdf', methods: ['GET'],
+        requirements: ['departamentId' => '\d+', 'rok' => '\d{4}', 'miesiac' => '\d{1,2}'])]
+    public function grafikPdf(
+        int $departamentId,
+        int $rok,
+        int $miesiac,
+        EntityManagerInterface $em,
+        UserDepartamentRepository $userDepartamentRepo,
+        GrafikWpisRepository $grafikWpisRepo,
+        PolishHolidayService $holidayService,
+        DzienWolnyFirmyRepository $dzienWolnyRepo,
+        ModulChecker $modulChecker,
+        PlanerUstawieniaRepository $ustawieniaRepo,
+        Environment $twig,
+    ): Response {
+        if (!$modulChecker->hasAccess('drukuj_grafik')) {
+            throw $this->createAccessDeniedException('Brak dostępu do modułu Drukuj grafik.');
+        }
+
+        $currentUser = $this->getUser();
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+
+        if ($miesiac < 1) { $miesiac = 1; }
+        if ($miesiac > 12) { $miesiac = 12; }
+
+        $departament = $em->getRepository(Departament::class)->find($departamentId);
+        if (!$departament) {
+            throw $this->createNotFoundException('Departament nie istnieje.');
+        }
+
+        if (!$isAdmin) {
+            $dostepne = $this->getUserDepartaments($currentUser, $userDepartamentRepo);
+            $hasAccess = false;
+            foreach ($dostepne as $d) {
+                if ($d->getId() === $departament->getId()) {
+                    $hasAccess = true;
+                    break;
+                }
+            }
+            if (!$hasAccess) {
+                throw $this->createAccessDeniedException('Brak dostępu do tego departamentu.');
+            }
+        }
+
+        $userDepartamenty = $userDepartamentRepo->findUsersForDepartament($departament, false);
+
+        $users = [];
+        foreach ($userDepartamenty as $ud) {
+            $users[] = [
+                'user' => $ud->getUser(),
+                'czySzef' => $ud->isCzySzef(),
+                'czyGlowny' => $ud->isCzyGlowny(),
+            ];
+        }
+
+        $grid = $grafikWpisRepo->findForDepartamentAndMonth($departament, $rok, $miesiac);
+
+        $typyZmianAll = $em->getRepository(TypZmiany::class)->findBy([], ['kolejnosc' => 'ASC']);
+        $typyZmian = array_values(array_filter($typyZmianAll, fn(TypZmiany $t) => $t->isAktywny() && $t->isAvailableForDepartament($departament)));
+
+        $dniWMiesiacu = (int) (new \DateTime(sprintf('%04d-%02d-01', $rok, $miesiac)))->format('t');
+
+        $firmowe = $dzienWolnyRepo->findMapForYear($rok);
+        $swieta = $holidayService->getHolidaysForMonth($rok, $miesiac, $firmowe);
+
+        $dni = [];
+        for ($d = 1; $d <= $dniWMiesiacu; $d++) {
+            $date = new \DateTime(sprintf('%04d-%02d-%02d', $rok, $miesiac, $d));
+            $dateStr = $date->format('Y-m-d');
+            $dayOfWeek = (int) $date->format('N');
+            $swietoNazwa = $swieta[$dateStr] ?? null;
+
+            $dni[$d] = [
+                'numer' => $d,
+                'dzienTygodnia' => $this->polishDayName($dayOfWeek),
+                'weekend' => $dayOfWeek >= 6,
+                'swieto' => $swietoNazwa !== null,
+                'swietoNazwa' => $swietoNazwa,
+            ];
+        }
+
+        // Dni wolne per user
+        $dniWolnePerUser = [];
+        foreach ($grid as $userId => $days) {
+            $count = 0;
+            foreach ($days as $wpis) {
+                if ($wpis->getTypZmiany()->getSkrot() === 'W') {
+                    $count++;
+                }
+            }
+            $dniWolnePerUser[$userId] = $count;
+        }
+
+        $firmaNazwa = $ustawieniaRepo->getSettings()->getFirmaNazwa();
+
+        $html = $twig->render('@Planer/grafik/pdf.html.twig', [
+            'departament' => $departament,
+            'rok' => $rok,
+            'miesiac' => $miesiac,
+            'miesiacNazwa' => $this->polishMonthName($miesiac),
+            'users' => $users,
+            'grid' => $grid,
+            'typyZmian' => $typyZmian,
+            'dni' => $dni,
+            'dniWMiesiacu' => $dniWMiesiacu,
+            'dniWolnePerUser' => $dniWolnePerUser,
+            'firmaNazwa' => $firmaNazwa,
+            'dataGenerowania' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->setDefaultFont('DejaVu Sans');
+        $options->setIsRemoteEnabled(false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = sprintf('grafik_%s_%d_%02d.pdf', $departament->getSkrot(), $rok, $miesiac);
+
+        $response = new Response($dompdf->output());
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            $filename,
+        ));
+
+        return $response;
     }
 
     #[Route('/api/wpis', name: 'grafik_upsert_wpis', methods: ['POST'])]
@@ -416,7 +576,12 @@ class GrafikController extends AbstractController
         PlanerUstawieniaRepository $ustawieniaRepo,
         PolishHolidayService $holidayService,
         DzienWolnyFirmyRepository $dzienWolnyRepo,
+        ModulChecker $modulChecker,
     ): JsonResponse {
+        if (!$modulChecker->hasAccess('auto_planer')) {
+            return new JsonResponse(['error' => 'Brak dostępu do modułu Auto Planer'], 403);
+        }
+
         $currentUser = $this->getUser();
 
         $payload = json_decode($request->getContent(), true);
@@ -435,10 +600,6 @@ class GrafikController extends AbstractController
         $departament = $em->getRepository(Departament::class)->find($departamentId);
         if (!$departament) {
             return new JsonResponse(['error' => 'Departament not found'], 404);
-        }
-
-        if (!$this->isGranted('ROLE_ADMIN') && !$this->isUserSzefDepartamentu($currentUser, $departament, $userDepartamentRepo)) {
-            return new JsonResponse(['error' => 'Access denied'], 403);
         }
 
         $settings = $ustawieniaRepo->getSettings();

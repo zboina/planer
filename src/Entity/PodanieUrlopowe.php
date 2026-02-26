@@ -57,6 +57,22 @@ class PodanieUrlopowe
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $podpis = null;
 
+    #[ORM\Column(length: 30)]
+    private string $status = 'zlozony';
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $statusZmienionyAt = null;
+
+    #[ORM\ManyToOne(targetEntity: PlanerUserInterface::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?object $statusPrzez = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $komentarzOdrzucenia = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $sprawy = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -205,5 +221,60 @@ class PodanieUrlopowe
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $this->status = $status;
+        return $this;
+    }
+
+    public function getStatusZmienionyAt(): ?\DateTimeImmutable
+    {
+        return $this->statusZmienionyAt;
+    }
+
+    public function setStatusZmienionyAt(?\DateTimeImmutable $statusZmienionyAt): static
+    {
+        $this->statusZmienionyAt = $statusZmienionyAt;
+        return $this;
+    }
+
+    public function getStatusPrzez(): ?object
+    {
+        return $this->statusPrzez;
+    }
+
+    public function setStatusPrzez(?object $statusPrzez): static
+    {
+        $this->statusPrzez = $statusPrzez;
+        return $this;
+    }
+
+    public function getKomentarzOdrzucenia(): ?string
+    {
+        return $this->komentarzOdrzucenia;
+    }
+
+    public function setKomentarzOdrzucenia(?string $komentarzOdrzucenia): static
+    {
+        $this->komentarzOdrzucenia = $komentarzOdrzucenia;
+        return $this;
+    }
+
+    public function getSprawy(): ?string
+    {
+        return $this->sprawy;
+    }
+
+    public function setSprawy(?string $sprawy): static
+    {
+        $this->sprawy = $sprawy;
+        return $this;
     }
 }

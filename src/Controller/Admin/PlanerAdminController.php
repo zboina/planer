@@ -7,18 +7,26 @@ use Dompdf\Options;
 use Planer\PlanerBundle\Entity\Departament;
 use Planer\PlanerBundle\Entity\DzienWolnyFirmy;
 use Planer\PlanerBundle\Entity\GrafikWpis;
+use Planer\PlanerBundle\Entity\PlanerModul;
 use Planer\PlanerBundle\Entity\PodanieUrlopowe;
 use Planer\PlanerBundle\Entity\RodzajUrlopu;
 use Planer\PlanerBundle\Entity\SzablonPodania;
 use Planer\PlanerBundle\Entity\TypPodania;
 use Planer\PlanerBundle\Entity\TypZmiany;
 use Planer\PlanerBundle\Entity\UserDepartament;
+use Planer\PlanerBundle\Entity\WorkflowKrok;
+use Planer\PlanerBundle\Entity\PlanerRola;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
+use Planer\PlanerBundle\Repository\PlanerModulRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
+use Planer\PlanerBundle\Repository\PlanerRolaRepository;
+use Planer\PlanerBundle\Repository\PodanieLogRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
+use Planer\PlanerBundle\Repository\WorkflowKrokRepository;
 use Planer\PlanerBundle\Service\PdfImportService;
 use Planer\PlanerBundle\Service\PlanerUserResolver;
 use Planer\PlanerBundle\Service\PlaceholderReplacerService;
+use Planer\PlanerBundle\Service\PodanieWorkflowFactory;
 use Planer\PlanerBundle\Service\PolishHolidayService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -546,6 +554,8 @@ class PlanerAdminController extends AbstractController
         Environment $twig,
         PlanerUstawieniaRepository $ustawieniaRepo,
         PlaceholderReplacerService $replacerService,
+        PodanieLogRepository $logRepo,
+        PodanieWorkflowFactory $workflowFactory,
     ): Response {
         $settings = $ustawieniaRepo->getSettings();
         $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
@@ -565,6 +575,7 @@ class PlanerAdminController extends AbstractController
             }
 
             $html = $twig->render('@Planer/podanie/_pdf_' . $szablon . '.html.twig', [
+                'podanie' => $podanie,
                 'user' => $podanie->getUser(),
                 'dataOd' => $podanie->getDataOd(),
                 'dataDo' => $podanie->getDataDo(),
@@ -576,6 +587,10 @@ class PlanerAdminController extends AbstractController
                 'typPodania' => $podanie->getTypPodania(),
                 'rodzajUrlopu' => $podanie->getRodzajUrlopu(),
                 'podpis' => $podanie->getPodpis(),
+                'logs' => $logRepo->findByPodanie($podanie),
+                'workflowSteps' => $workflowFactory->getActiveSteps(),
+                'departament' => $podanie->getDepartament(),
+                'uzasadnienie' => $podanie->getUzasadnienie(),
             ]);
         }
 
@@ -601,15 +616,110 @@ class PlanerAdminController extends AbstractController
     }
 
     #[Route('/podania', name: 'planer_admin_podania', methods: ['GET'])]
-    public function podaniaIndex(): Response
+    public function podaniaIndex(PodanieLogRepository $logRepo): Response
     {
         $podania = $this->em->getRepository(PodanieUrlopowe::class)
             ->findBy([], ['createdAt' => 'DESC']);
 
+        $podanieIds = array_map(fn($p) => $p->getId(), $podania);
+        $logs = $logRepo->findByPodanieIds($podanieIds);
+        $logsMap = [];
+        foreach ($logs as $log) {
+            $logsMap[$log->getPodanie()->getId()][] = $log;
+        }
+
         return $this->render('@Planer/admin/podania.html.twig', [
             'active' => 'podania',
             'podania' => $podania,
+            'logsMap' => $logsMap,
         ]);
+    }
+
+    #[Route('/podania/{id}/akceptuj', name: 'planer_admin_podanie_akceptuj', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function podanieAkceptuj(
+        int $id,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $transition = $workflowFactory->findEnabledAcceptTransition($podanie);
+        if ($transition === null) {
+            $this->addFlash('danger', 'Nie można zaakceptować tego podania.');
+            return $this->redirectToRoute('planer_admin_podania');
+        }
+
+        $workflowFactory->getWorkflow()->apply($podanie, $transition);
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało zaakceptowane.');
+
+        return $this->redirectToRoute('planer_admin_podania');
+    }
+
+    #[Route('/podania/{id}/odrzuc', name: 'planer_admin_podanie_odrzuc', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function podanieOdrzuc(
+        int $id,
+        Request $request,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $transition = $workflowFactory->findEnabledRejectTransition($podanie);
+        if ($transition === null) {
+            $this->addFlash('danger', 'Nie można odrzucić tego podania.');
+            return $this->redirectToRoute('planer_admin_podania');
+        }
+
+        $komentarz = trim($request->request->getString('komentarz'));
+        if ($komentarz) {
+            $podanie->setKomentarzOdrzucenia($komentarz);
+        }
+
+        $workflowFactory->getWorkflow()->apply($podanie, $transition);
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało odrzucone.');
+
+        return $this->redirectToRoute('planer_admin_podania');
+    }
+
+    #[Route('/podania/{id}/anuluj', name: 'planer_admin_podanie_anuluj', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function podanieAnuluj(
+        int $id,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $workflow = $workflowFactory->getWorkflow();
+        if (!$workflow->can($podanie, 'anuluj')) {
+            $this->addFlash('danger', 'Nie można anulować tego podania.');
+            return $this->redirectToRoute('planer_admin_podania');
+        }
+
+        $workflow->apply($podanie, 'anuluj');
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało anulowane.');
+
+        return $this->redirectToRoute('planer_admin_podania');
     }
 
     #[Route('/podania/{id}/delete', name: 'planer_admin_podanie_delete', methods: ['POST'],
@@ -618,6 +728,10 @@ class PlanerAdminController extends AbstractController
     {
         $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
         if ($podanie) {
+            if ($podanie->getStatus() !== 'zlozony' && !$this->isGranted('ROLE_ADMIN')) {
+                $this->addFlash('danger', 'Można usunąć tylko podania ze statusem "Złożony".');
+                return $this->redirectToRoute('planer_admin_podania');
+            }
             $this->em->remove($podanie);
             $this->em->flush();
             $this->addFlash('success', 'Podanie zostało usunięte.');
@@ -929,6 +1043,87 @@ class PlanerAdminController extends AbstractController
 
         $this->addFlash('success', 'Dzień wolny został usunięty.');
         return $this->redirectToRoute('dzien_wolny_index');
+    }
+
+    // ──────────────────────────────────────
+    //  MODUŁY
+    // ──────────────────────────────────────
+
+    #[Route('/moduly', name: 'planer_admin_moduly', methods: ['GET'])]
+    public function modulyIndex(PlanerModulRepository $modulRepo): Response
+    {
+        $moduly = $modulRepo->findAllOrdered();
+
+        return $this->render('@Planer/admin/moduly/index.html.twig', [
+            'active' => 'moduly',
+            'moduly' => $moduly,
+        ]);
+    }
+
+    #[Route('/moduly/{id}/edit', name: 'planer_admin_modul_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
+    public function modulEdit(int $id, Request $request, UserDepartamentRepository $udRepo): Response
+    {
+        $modul = $this->em->getRepository(PlanerModul::class)->find($id);
+        if (!$modul) {
+            throw $this->createNotFoundException('Moduł nie istnieje.');
+        }
+
+        if ($request->isMethod('POST')) {
+            $modul->setNazwa($request->request->getString('nazwa'));
+            $modul->setOpis($request->request->getString('opis') ?: null);
+            $modul->setIkona($request->request->getString('ikona') ?: null);
+            $modul->setKolejnosc($request->request->getInt('kolejnosc'));
+            $modul->setAktywny($request->request->getBoolean('aktywny'));
+            $modul->setTrybDostepu($request->request->getString('tryb_dostepu'));
+
+            $role = array_filter(array_map('trim', explode(',', $request->request->getString('dozwolone_role'))));
+            $modul->setDozwoloneRole(array_values($role));
+
+            $userIds = array_filter(array_map('intval', explode(',', $request->request->getString('dozwoleni_user_ids'))));
+            $modul->setDozwoleniUserIds(array_values($userIds));
+
+            $deptIds = array_map('intval', $request->request->all('dozwolone_departamenty_ids'));
+            $modul->setDozwoloneDepartamentyIds(array_values(array_filter($deptIds)));
+
+            $this->em->flush();
+
+            $this->addFlash('success', 'Moduł został zaktualizowany.');
+            return $this->redirectToRoute('planer_admin_moduly');
+        }
+
+        $departamenty = $this->em->getRepository(Departament::class)
+            ->findBy([], ['kolejnosc' => 'ASC', 'nazwa' => 'ASC']);
+
+        $users = $udRepo->findAllPlanerUsers();
+
+        return $this->render('@Planer/admin/moduly/edit.html.twig', [
+            'active' => 'moduly',
+            'modul' => $modul,
+            'departamenty' => $departamenty,
+            'users' => $users,
+        ]);
+    }
+
+    #[Route('/moduly/toggle', name: 'planer_admin_modul_toggle', methods: ['POST'])]
+    public function modulToggle(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $id = $data['id'] ?? null;
+        $aktywny = $data['aktywny'] ?? null;
+
+        if (!$id || $aktywny === null) {
+            return new JsonResponse(['error' => 'Brak danych'], 400);
+        }
+
+        $modul = $this->em->getRepository(PlanerModul::class)->find($id);
+        if (!$modul) {
+            return new JsonResponse(['error' => 'Nie znaleziono'], 404);
+        }
+
+        $modul->setAktywny((bool) $aktywny);
+        $this->em->flush();
+
+        return new JsonResponse(['success' => true]);
     }
 
     // ──────────────────────────────────────
@@ -1369,5 +1564,187 @@ class PlanerAdminController extends AbstractController
         }
 
         return $this->redirectToRoute('planer_admin_slowniki');
+    }
+
+    // ──────────────────────────────────────
+    //  WORKFLOW (kroki akceptacji)
+    // ──────────────────────────────────────
+
+    #[Route('/workflow', name: 'planer_admin_workflow', methods: ['GET'])]
+    public function workflowIndex(WorkflowKrokRepository $krokRepo): Response
+    {
+        return $this->render('@Planer/admin/workflow/index.html.twig', [
+            'active' => 'workflow',
+            'kroki' => $krokRepo->findAllOrdered(),
+        ]);
+    }
+
+    #[Route('/workflow/new', name: 'planer_admin_workflow_new', methods: ['GET', 'POST'])]
+    public function workflowNew(Request $request, WorkflowKrokRepository $krokRepo): Response
+    {
+        if ($request->isMethod('POST')) {
+            $krok = new WorkflowKrok();
+            $krok->setKey($request->request->getString('key'));
+            $krok->setLabel($request->request->getString('label'));
+            $krok->setType($request->request->getString('type', WorkflowKrok::TYPE_GLOBAL));
+            $krok->setKolejnosc($request->request->getInt('kolejnosc'));
+            $krok->setPomijalne($request->request->getBoolean('pomijalne'));
+
+            $this->em->persist($krok);
+            $this->em->flush();
+
+            $this->addFlash('success', 'Krok workflow został dodany.');
+            return $this->redirectToRoute('planer_admin_workflow');
+        }
+
+        $maxKolejnosc = 0;
+        foreach ($krokRepo->findAllOrdered() as $k) {
+            if ($k->getKolejnosc() > $maxKolejnosc) {
+                $maxKolejnosc = $k->getKolejnosc();
+            }
+        }
+
+        return $this->render('@Planer/admin/workflow/form.html.twig', [
+            'active' => 'workflow',
+            'krok' => null,
+            'nextKolejnosc' => $maxKolejnosc + 1,
+        ]);
+    }
+
+    #[Route('/workflow/{id}/edit', name: 'planer_admin_workflow_edit', methods: ['GET', 'POST'],
+        requirements: ['id' => '\d+'])]
+    public function workflowEdit(WorkflowKrok $krok, Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $krok->setKey($request->request->getString('key'));
+            $krok->setLabel($request->request->getString('label'));
+            $krok->setType($request->request->getString('type', WorkflowKrok::TYPE_GLOBAL));
+            $krok->setKolejnosc($request->request->getInt('kolejnosc'));
+            $krok->setPomijalne($request->request->getBoolean('pomijalne'));
+
+            $this->em->flush();
+
+            $this->addFlash('success', 'Krok workflow został zaktualizowany.');
+            return $this->redirectToRoute('planer_admin_workflow');
+        }
+
+        return $this->render('@Planer/admin/workflow/form.html.twig', [
+            'active' => 'workflow',
+            'krok' => $krok,
+            'nextKolejnosc' => $krok->getKolejnosc(),
+        ]);
+    }
+
+    #[Route('/workflow/{id}/delete', name: 'planer_admin_workflow_delete', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function workflowDelete(int $id): Response
+    {
+        $krok = $this->em->getRepository(WorkflowKrok::class)->find($id);
+        if ($krok) {
+            $this->em->remove($krok);
+            $this->em->flush();
+            $this->addFlash('success', 'Krok workflow został usunięty.');
+        }
+
+        return $this->redirectToRoute('planer_admin_workflow');
+    }
+
+    #[Route('/workflow/sort', name: 'planer_admin_workflow_sort', methods: ['POST'])]
+    public function workflowSort(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!$data || !isset($data['order']) || !is_array($data['order'])) {
+            return new JsonResponse(['error' => 'Invalid data'], 400);
+        }
+
+        foreach ($data['order'] as $item) {
+            $id = $item['id'] ?? null;
+            $kolejnosc = $item['kolejnosc'] ?? null;
+            if ($id === null || $kolejnosc === null) {
+                continue;
+            }
+            $krok = $this->em->getRepository(WorkflowKrok::class)->find($id);
+            if ($krok) {
+                $krok->setKolejnosc((int) $kolejnosc);
+            }
+        }
+
+        $this->em->flush();
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    // ──────────────────────────────────────
+    //  ROLE (przypisania ról workflow)
+    // ──────────────────────────────────────
+
+    #[Route('/role', name: 'planer_admin_role', methods: ['GET'])]
+    public function roleIndex(PlanerRolaRepository $rolaRepo, WorkflowKrokRepository $krokRepo): Response
+    {
+        $role = $rolaRepo->findBy([], ['rola' => 'ASC']);
+
+        // Get global workflow steps for labeling
+        $kroki = $krokRepo->findAllOrdered();
+        $krokiMap = [];
+        foreach ($kroki as $krok) {
+            if ($krok->isGlobal()) {
+                $krokiMap[$krok->getKey()] = $krok->getLabel();
+            }
+        }
+
+        return $this->render('@Planer/admin/role/index.html.twig', [
+            'active' => 'role',
+            'role' => $role,
+            'krokiMap' => $krokiMap,
+        ]);
+    }
+
+    #[Route('/role/new', name: 'planer_admin_role_new', methods: ['GET', 'POST'])]
+    public function roleNew(Request $request, WorkflowKrokRepository $krokRepo): Response
+    {
+        $globalKroki = array_filter($krokRepo->findAllOrdered(), fn(WorkflowKrok $k) => $k->isGlobal());
+        $users = $this->em->getRepository($this->getParameter('planer.user_class'))->findBy([], ['id' => 'ASC']);
+
+        if ($request->isMethod('POST')) {
+            $userId = $request->request->getInt('user_id');
+            $rola = $request->request->getString('rola');
+
+            $user = $this->em->find($this->getParameter('planer.user_class'), $userId);
+            if ($user && $rola) {
+                $rola_entity = new PlanerRola();
+                $rola_entity->setUser($user);
+                $rola_entity->setRola($rola);
+
+                $this->em->persist($rola_entity);
+                try {
+                    $this->em->flush();
+                    $this->addFlash('success', 'Rola została przypisana.');
+                } catch (\Exception) {
+                    $this->addFlash('danger', 'Ten użytkownik ma już przypisaną tę rolę.');
+                }
+            }
+
+            return $this->redirectToRoute('planer_admin_role');
+        }
+
+        return $this->render('@Planer/admin/role/form.html.twig', [
+            'active' => 'role',
+            'globalKroki' => $globalKroki,
+            'users' => $users,
+        ]);
+    }
+
+    #[Route('/role/{id}/delete', name: 'planer_admin_role_delete', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function roleDelete(int $id): Response
+    {
+        $rola = $this->em->getRepository(PlanerRola::class)->find($id);
+        if ($rola) {
+            $this->em->remove($rola);
+            $this->em->flush();
+            $this->addFlash('success', 'Rola została usunięta.');
+        }
+
+        return $this->redirectToRoute('planer_admin_role');
     }
 }

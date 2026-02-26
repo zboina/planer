@@ -67,6 +67,7 @@ class PlanerBundle extends AbstractBundle
                 ],
             ],
         ]);
+
     }
 
     public function loadExtension(

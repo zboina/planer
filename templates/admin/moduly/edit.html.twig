@@ -1,0 +1,124 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Edycja modułu: {{ modul.nazwa }} — Panel planera{% endblock %}
+{% block panel_heading %}Edycja modułu: {{ modul.nazwa }}{% endblock %}
+
+{% block panel_content %}
+<form method="post">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label" for="kod">Kod</label>
+                <input type="text" class="form-control" id="kod" value="{{ modul.kod }}" disabled>
+                <small class="form-hint">Kodu nie można zmienić.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label required" for="nazwa">Nazwa</label>
+                <input type="text" class="form-control" id="nazwa" name="nazwa" value="{{ modul.nazwa }}" required maxlength="100">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="opis">Opis</label>
+                <textarea class="form-control" id="opis" name="opis" rows="2">{{ modul.opis }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="ikona">Ikona (Tabler)</label>
+                <input type="text" class="form-control" id="ikona" name="ikona" value="{{ modul.ikona }}" maxlength="50" placeholder="np. robot, wand, settings">
+                <small class="form-hint">Nazwa ikony Tabler bez prefiksu ti- (np. <code>robot</code>)</small>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="kolejnosc">Kolejność</label>
+                    <input type="number" class="form-control" id="kolejnosc" name="kolejnosc" value="{{ modul.kolejnosc }}" style="width:100px;">
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label">Aktywny</label>
+                    <div>
+                        <label class="form-check form-switch">
+                            <input type="hidden" name="aktywny" value="0">
+                            <input type="checkbox" class="form-check-input" name="aktywny" value="1" {{ modul.aktywny ? 'checked' : '' }}>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label required" for="tryb_dostepu">Tryb dostępu</label>
+                <select class="form-select" id="tryb_dostepu" name="tryb_dostepu" onchange="toggleTrybSections()">
+                    <option value="wszyscy" {{ modul.trybDostepu == 'wszyscy' ? 'selected' : '' }}>Wszyscy (każdy zalogowany)</option>
+                    <option value="role" {{ modul.trybDostepu == 'role' ? 'selected' : '' }}>Role (dowolna z podanych ról)</option>
+                    <option value="and" {{ modul.trybDostepu == 'and' ? 'selected' : '' }}>AND (rola + departament)</option>
+                    <option value="or" {{ modul.trybDostepu == 'or' ? 'selected' : '' }}>OR (rola lub user lub departament)</option>
+                    <option value="uzytkownicy" {{ modul.trybDostepu == 'uzytkownicy' ? 'selected' : '' }}>Użytkownicy (konkretne osoby)</option>
+                </select>
+            </div>
+
+            <div id="section-role" class="mb-3" style="display:none;">
+                <label class="form-label" for="dozwolone_role">Dozwolone role</label>
+                <input type="text" class="form-control" id="dozwolone_role" name="dozwolone_role"
+                       value="{{ modul.dozwoloneRole|join(', ') }}"
+                       placeholder="np. ROLE_ADMIN, ROLE_EDITOR">
+                <small class="form-hint">Role oddzielone przecinkami</small>
+            </div>
+
+            <div id="section-users" class="mb-3" style="display:none;">
+                <label class="form-label" for="dozwoleni_user_ids">Dozwoleni użytkownicy</label>
+                <select class="form-select" id="dozwoleni_user_ids_select" multiple size="6">
+                    {% for u in users %}
+                        <option value="{{ u.id }}" {{ u.id in modul.dozwoleniUserIds ? 'selected' : '' }}>
+                            {{ planer_name(u) }} (ID: {{ u.id }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" id="dozwoleni_user_ids" name="dozwoleni_user_ids" value="{{ modul.dozwoleniUserIds|join(', ') }}">
+                <small class="form-hint">Przytrzymaj Ctrl aby zaznaczyć wielu</small>
+            </div>
+
+            <div id="section-dept" class="mb-3" style="display:none;">
+                <label class="form-label">Dozwolone departamenty</label>
+                {% for d in departamenty %}
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" name="dozwolone_departamenty_ids[]"
+                               value="{{ d.id }}" {{ d.id in modul.dozwoloneDepartamentyIds ? 'checked' : '' }}>
+                        <span class="form-check-label">{{ d.nazwa }} ({{ d.skrot }})</span>
+                    </label>
+                {% endfor %}
+                {% if departamenty is empty %}
+                    <p class="text-muted">Brak departamentów.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">Zapisz</button>
+        <a href="{{ path('planer_admin_moduly') }}" class="btn btn-secondary">Anuluj</a>
+    </div>
+</form>
+
+<script>
+function toggleTrybSections() {
+    var tryb = document.getElementById('tryb_dostepu').value;
+    var showRole = ['role', 'and', 'or'].includes(tryb);
+    var showUsers = ['uzytkownicy', 'or'].includes(tryb);
+    var showDept = ['and', 'or'].includes(tryb);
+
+    document.getElementById('section-role').style.display = showRole ? '' : 'none';
+    document.getElementById('section-users').style.display = showUsers ? '' : 'none';
+    document.getElementById('section-dept').style.display = showDept ? '' : 'none';
+}
+toggleTrybSections();
+
+// Sync multiselect to hidden input
+var sel = document.getElementById('dozwoleni_user_ids_select');
+var hidden = document.getElementById('dozwoleni_user_ids');
+sel.addEventListener('change', function() {
+    var vals = [];
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].selected) vals.push(sel.options[i].value);
+    }
+    hidden.value = vals.join(', ');
+});
+</script>
+{% endblock %}

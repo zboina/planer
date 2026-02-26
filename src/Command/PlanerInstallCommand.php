@@ -3,6 +3,7 @@
 namespace Planer\PlanerBundle\Command;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Planer\PlanerBundle\Entity\PlanerModul;
 use Planer\PlanerBundle\Entity\RodzajUrlopu;
 use Planer\PlanerBundle\Entity\SzablonPodania;
 use Planer\PlanerBundle\Entity\TypPodania;
@@ -39,6 +40,7 @@ class PlanerInstallCommand extends Command
 
         $io->title('Instalacja danych słownikowych Planer');
 
+        $this->installModuly($io, $force);
         $this->installTypyPodania($io, $force);
         $this->installRodzajeUrlopu($io, $force);
         $this->installSzablonyPodan($io, $force);
@@ -53,6 +55,70 @@ class PlanerInstallCommand extends Command
         $io->success('Instalacja zakończona.');
 
         return Command::SUCCESS;
+    }
+
+    // ──────────────────────────────────────
+    //  MODUŁY
+    // ──────────────────────────────────────
+
+    private function installModuly(SymfonyStyle $io, bool $force): void
+    {
+        $repo = $this->em->getRepository(PlanerModul::class);
+
+        $moduly = [
+            [
+                'kod' => 'auto_planer',
+                'nazwa' => 'Auto Planer',
+                'opis' => 'Automatyczne wypełnianie grafiku dla całego departamentu',
+                'ikona' => 'robot',
+                'trybDostepu' => 'role',
+                'dozwoloneRole' => ['ROLE_ADMIN'],
+            ],
+            [
+                'kod' => 'moje_podania',
+                'nazwa' => 'Moje podania',
+                'opis' => 'Dostęp do listy podań urlopowych i składania wniosków',
+                'ikona' => 'file-text',
+                'trybDostepu' => 'wszyscy',
+                'dozwoloneRole' => [],
+            ],
+            [
+                'kod' => 'drukuj_grafik',
+                'nazwa' => 'Drukuj grafik',
+                'opis' => 'Eksport grafiku pracy departamentu do PDF',
+                'ikona' => 'printer',
+                'trybDostepu' => 'wszyscy',
+                'dozwoloneRole' => [],
+            ],
+        ];
+
+        $count = 0;
+        foreach ($moduly as $row) {
+            $found = $repo->findOneBy(['kod' => $row['kod']]);
+            if ($found) {
+                if ($force) {
+                    $found->setNazwa($row['nazwa']);
+                    $found->setOpis($row['opis']);
+                    $found->setIkona($row['ikona']);
+                    $found->setTrybDostepu($row['trybDostepu']);
+                    $found->setDozwoloneRole($row['dozwoloneRole']);
+                }
+                continue;
+            }
+
+            $entity = new PlanerModul();
+            $entity->setKod($row['kod']);
+            $entity->setNazwa($row['nazwa']);
+            $entity->setOpis($row['opis']);
+            $entity->setIkona($row['ikona']);
+            $entity->setTrybDostepu($row['trybDostepu']);
+            $entity->setDozwoloneRole($row['dozwoloneRole']);
+            $this->em->persist($entity);
+            $count++;
+        }
+
+        $this->em->flush();
+        $io->writeln(sprintf('  Moduły: dodano <info>%d</info> rekordów', $count));
     }
 
     // ──────────────────────────────────────

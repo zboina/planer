@@ -1,0 +1,88 @@
+{% extends planer_base_template %}
+
+{% block title %}Planer{% endblock %}
+{% block page_pretitle %}Planer{% endblock %}
+{% block page_title %}Panel zarządzania{% endblock %}
+
+{% block body %}
+<div class="row row-cards g-4 justify-content-center">
+
+    {# ── Grafik pracy ── #}
+    <div class="col-sm-6 col-lg-4">
+        <a href="{{ path('grafik_index') }}" class="card card-link card-link-pop text-decoration-none h-100">
+            <div class="card-body text-center py-5">
+                <div class="mb-3">
+                    <span class="bg-blue-lt text-blue rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="32" height="32" viewBox="0 0 24 24"
+                             stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/>
+                            <path d="M16 3v4"/>
+                            <path d="M8 3v4"/>
+                            <path d="M4 11h16"/>
+                            <path d="M8 15h2v2h-2z"/>
+                        </svg>
+                    </span>
+                </div>
+                <h3 class="card-title mb-1">Grafik pracy</h3>
+                <p class="text-secondary mb-0">Harmonogram zmian i urlopy pracowników</p>
+            </div>
+        </a>
+    </div>
+
+    {# ── Podania i wnioski ── #}
+    {% if hasWorkflowRole %}
+        <div class="col-sm-6 col-lg-4">
+            <a href="{{ path('grafik_podanie_lista', {tab: 'do_akceptacji'}) }}" class="card card-link card-link-pop text-decoration-none h-100">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3 position-relative d-inline-block">
+                        <span class="bg-green-lt text-green rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="32" height="32" viewBox="0 0 24 24"
+                                 stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                <path d="M9 15l2 2l4 -4"/>
+                            </svg>
+                        </span>
+                        {% if podaniaCount > 0 %}
+                            <span class="badge bg-red text-white badge-notification badge-pill position-absolute top-0 end-0 translate-middle-y" style="font-size: 0.75rem; min-width: 24px;">{{ podaniaCount }}</span>
+                        {% endif %}
+                    </div>
+                    <h3 class="card-title mb-1">Podania i wnioski</h3>
+                    <p class="text-secondary mb-0">
+                        {% if podaniaCount > 0 %}
+                            <span class="text-red fw-bold">{{ podaniaCount }}</span> {{ podaniaCount == 1 ? 'podanie czeka' : 'podań czeka' }} na akceptację
+                        {% else %}
+                            Przeglądaj i akceptuj podania pracowników
+                        {% endif %}
+                    </p>
+                </div>
+            </a>
+        </div>
+    {% endif %}
+
+    {# ── Administracja ── #}
+    {% if isAdmin %}
+        <div class="col-sm-6 col-lg-4">
+            <a href="{{ path('planer_admin_dashboard') }}" class="card card-link card-link-pop text-decoration-none h-100">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3">
+                        <span class="bg-orange-lt text-orange rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="32" height="32" viewBox="0 0 24 24"
+                                 stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/>
+                                <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <h3 class="card-title mb-1">Administracja</h3>
+                    <p class="text-secondary mb-0">Ustawienia planera, departamenty, typy zmian</p>
+                </div>
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

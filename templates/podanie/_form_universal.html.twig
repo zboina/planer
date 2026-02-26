@@ -79,6 +79,15 @@
 </div>
 {% endif %}
 
+{% if 'sprawy' in polaFormularza %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <label class="form-label" for="sprawy">Sprawy wymagające załatwienia podczas nieobecności</label>
+        <textarea class="form-control form-control-sm" id="sprawy" name="sprawy" rows="2" placeholder="Opcjonalnie — terminy spraw, spotkań itp."></textarea>
+    </div>
+</div>
+{% endif %}
+
 {% if 'podpis' in polaFormularza %}
 <div class="row mb-3">
     <div class="col-md-4">

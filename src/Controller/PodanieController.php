@@ -10,10 +10,13 @@ use Planer\PlanerBundle\Entity\TypPodania;
 use Planer\PlanerBundle\Entity\TypZmiany;
 use Planer\PlanerBundle\Repository\GrafikWpisRepository;
 use Planer\PlanerBundle\Repository\PlanerUstawieniaRepository;
+use Planer\PlanerBundle\Repository\PodanieLogRepository;
 use Planer\PlanerBundle\Repository\PodanieUrlopoweRepository;
 use Planer\PlanerBundle\Repository\UserDepartamentRepository;
+use Planer\PlanerBundle\Service\ModulChecker;
 use Planer\PlanerBundle\Service\PlanerUserResolver;
 use Planer\PlanerBundle\Service\PlaceholderReplacerService;
+use Planer\PlanerBundle\Service\PodanieWorkflowFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -43,24 +46,158 @@ class PodanieController extends AbstractController
 
     #[Route('/lista', name: 'grafik_podanie_lista', methods: ['GET'])]
     public function lista(
+        Request $request,
         PodanieUrlopoweRepository $podanieRepo,
+        PodanieLogRepository $logRepo,
         UserDepartamentRepository $udRepo,
+        ModulChecker $modulChecker,
+        PodanieWorkflowFactory $workflowFactory,
     ): Response {
         $currentUser = $this->getUser();
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        $isSzef = $this->isUserSzefAnyDept($currentUser, $udRepo);
+        $hasWorkflowRole = $isAdmin || $isSzef || $this->hasAnyGlobalWorkflowRole($workflowFactory);
 
-        if ($this->isGranted('ROLE_ADMIN')) {
-            $podania = $podanieRepo->findBy([], ['createdAt' => 'DESC']);
-        } elseif ($this->isUserSzefAnyDept($currentUser, $udRepo)) {
-            $depts = $this->getSzefDepartamenty($currentUser, $udRepo);
-            $podania = $podanieRepo->findByDepartamenty($depts);
+        if (!$hasWorkflowRole && !$modulChecker->hasAccess('moje_podania')) {
+            throw $this->createAccessDeniedException('Brak dostępu do modułu Moje podania');
+        }
+
+        $defaultTab = $hasWorkflowRole && !$isSzef ? 'do_akceptacji' : 'moje';
+        if ($hasWorkflowRole && $isSzef && !$isAdmin) {
+            $defaultTab = 'do_akceptacji';
+        }
+        $tab = $request->query->getString('tab', $defaultTab);
+
+        if ($tab === 'do_akceptacji' && $hasWorkflowRole) {
+            $podania = $this->getPodaniaDoAkceptacji($currentUser, $podanieRepo, $udRepo, $workflowFactory, $isAdmin, $isSzef);
+        } elseif ($tab === 'wszystkie' && $hasWorkflowRole) {
+            if ($isAdmin) {
+                $podania = $podanieRepo->findBy([], ['createdAt' => 'DESC']);
+            } elseif ($isSzef) {
+                $depts = $this->getSzefDepartamenty($currentUser, $udRepo);
+                $podania = $podanieRepo->findByDepartamenty($depts);
+            } else {
+                // Global role users see from first non-department step upward
+                $excludeStatuses = $this->getStatusesBeforeUserSteps($currentUser, $workflowFactory, $udRepo);
+                $podania = $podanieRepo->findAllExcludingStatuses($excludeStatuses);
+            }
         } else {
+            $tab = 'moje';
             $podania = $podanieRepo->findByUser($currentUser);
+        }
+
+        // Load logs grouped by podanie ID
+        $podanieIds = array_map(fn($p) => $p->getId(), $podania);
+        $logs = $logRepo->findByPodanieIds($podanieIds);
+        $logsMap = [];
+        foreach ($logs as $log) {
+            $logsMap[$log->getPodanie()->getId()][] = $log;
         }
 
         return $this->render('@Planer/podanie/lista.html.twig', [
             'podania' => $podania,
             'currentUser' => $currentUser,
+            'tab' => $tab,
+            'hasWorkflowRole' => $hasWorkflowRole,
+            'logsMap' => $logsMap,
         ]);
+    }
+
+    /**
+     * @return PodanieUrlopowe[]
+     */
+    private function getPodaniaDoAkceptacji(
+        object $currentUser,
+        PodanieUrlopoweRepository $podanieRepo,
+        UserDepartamentRepository $udRepo,
+        PodanieWorkflowFactory $workflowFactory,
+        bool $isAdmin,
+        bool $isSzef,
+    ): array {
+        $steps = $workflowFactory->getActiveSteps();
+        $result = [];
+
+        if ($isAdmin) {
+            // Admin sees all non-approved podania — collect statuses that precede each step
+            $prevStatus = 'zlozony';
+            foreach ($steps as $i => $step) {
+                $result = array_merge($result, $podanieRepo->findDoAkceptacji($prevStatus));
+                $isLast = ($i === count($steps) - 1);
+                $prevStatus = $isLast ? 'zatwierdzony' : $step->getKey() . '_ok';
+            }
+        } else {
+            $prevStatus = 'zlozony';
+            foreach ($steps as $i => $step) {
+                $isLast = ($i === count($steps) - 1);
+                $nextStatus = $isLast ? 'zatwierdzony' : $step->getKey() . '_ok';
+
+                if ($step->isDepartment() && $isSzef) {
+                    $depts = $this->getSzefDepartamenty($currentUser, $udRepo);
+                    $result = array_merge($result, $podanieRepo->findDoAkceptacji($prevStatus, $depts));
+                } elseif ($step->isGlobal() && $this->isGranted('ROLE_PLANER_' . strtoupper($step->getKey()))) {
+                    $result = array_merge($result, $podanieRepo->findDoAkceptacji($prevStatus));
+                }
+
+                $prevStatus = $nextStatus;
+            }
+        }
+
+        // Deduplicate by ID
+        $seen = [];
+        $unique = [];
+        foreach ($result as $p) {
+            if (!isset($seen[$p->getId()])) {
+                $seen[$p->getId()] = true;
+                $unique[] = $p;
+            }
+        }
+
+        return $unique;
+    }
+
+    private function hasAnyGlobalWorkflowRole(PodanieWorkflowFactory $workflowFactory): bool
+    {
+        foreach ($workflowFactory->getActiveSteps() as $step) {
+            if ($step->isGlobal() && $this->isGranted('ROLE_PLANER_' . strtoupper($step->getKey()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns statuses that come before the user's earliest step.
+     * Used to exclude these from "wszystkie" view for global-role users.
+     * @return string[]
+     */
+    private function getStatusesBeforeUserSteps(
+        object $user,
+        PodanieWorkflowFactory $workflowFactory,
+        UserDepartamentRepository $udRepo,
+    ): array {
+        $steps = $workflowFactory->getActiveSteps();
+        $exclude = [];
+        $prevStatus = 'zlozony';
+
+        foreach ($steps as $i => $step) {
+            $isLast = ($i === count($steps) - 1);
+            $hasRole = false;
+
+            if ($step->isDepartment() && $this->isUserSzefAnyDept($user, $udRepo)) {
+                $hasRole = true;
+            } elseif ($step->isGlobal() && $this->isGranted('ROLE_PLANER_' . strtoupper($step->getKey()))) {
+                $hasRole = true;
+            }
+
+            if ($hasRole) {
+                break; // user has role at this step — show from prevStatus upward
+            }
+
+            $exclude[] = $prevStatus;
+            $prevStatus = $isLast ? 'zatwierdzony' : $step->getKey() . '_ok';
+        }
+
+        return $exclude;
     }
 
     #[Route('/new/{userId}/{rok}', name: 'grafik_podanie_form', methods: ['GET'],
@@ -204,6 +341,9 @@ class PodanieController extends AbstractController
             if (in_array('uzasadnienie', $polaFormularza, true)) {
                 $podanie->setUzasadnienie(trim($request->request->getString('uzasadnienie')) ?: null);
             }
+            if (in_array('sprawy', $polaFormularza, true)) {
+                $podanie->setSprawy(trim($request->request->getString('sprawy')) ?: null);
+            }
             if (in_array('typ_podania', $polaFormularza, true)) {
                 $typPodaniaId = $request->request->getInt('typ_podania_id');
                 $podanie->setTypPodania($typPodaniaId ? $this->em->find(TypPodania::class, $typPodaniaId) : null);
@@ -242,6 +382,8 @@ class PodanieController extends AbstractController
         UserDepartamentRepository $udRepo,
         PlanerUstawieniaRepository $ustawieniaRepo,
         PlaceholderReplacerService $replacerService,
+        PodanieLogRepository $logRepo,
+        PodanieWorkflowFactory $workflowFactory,
     ): Response {
         $settings = $ustawieniaRepo->getSettings();
         $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
@@ -263,6 +405,7 @@ class PodanieController extends AbstractController
             }
 
             $html = $twig->render('@Planer/podanie/_pdf_' . $szablon . '.html.twig', [
+                'podanie' => $podanie,
                 'user' => $podanie->getUser(),
                 'dataOd' => $podanie->getDataOd(),
                 'dataDo' => $podanie->getDataDo(),
@@ -274,6 +417,10 @@ class PodanieController extends AbstractController
                 'typPodania' => $podanie->getTypPodania(),
                 'rodzajUrlopu' => $podanie->getRodzajUrlopu(),
                 'podpis' => $podanie->getPodpis(),
+                'logs' => $logRepo->findByPodanie($podanie),
+                'workflowSteps' => $workflowFactory->getActiveSteps(),
+                'departament' => $podanie->getDepartament(),
+                'uzasadnienie' => $podanie->getUzasadnienie(),
             ]);
         }
 
@@ -298,6 +445,93 @@ class PodanieController extends AbstractController
         return $response;
     }
 
+    #[Route('/{id}/akceptuj', name: 'grafik_podanie_akceptuj', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function akceptuj(
+        int $id,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $transition = $workflowFactory->findEnabledAcceptTransition($podanie);
+        if ($transition === null) {
+            $this->addFlash('danger', 'Nie można zaakceptować tego podania.');
+            return $this->redirectToRoute('grafik_podanie_lista');
+        }
+
+        $workflowFactory->getWorkflow()->apply($podanie, $transition);
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało zaakceptowane.');
+
+        return $this->redirectToRoute('grafik_podanie_lista', ['tab' => 'do_akceptacji']);
+    }
+
+    #[Route('/{id}/odrzuc', name: 'grafik_podanie_odrzuc', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function odrzuc(
+        int $id,
+        Request $request,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $transition = $workflowFactory->findEnabledRejectTransition($podanie);
+        if ($transition === null) {
+            $this->addFlash('danger', 'Nie można odrzucić tego podania.');
+            return $this->redirectToRoute('grafik_podanie_lista');
+        }
+
+        $komentarz = trim($request->request->getString('komentarz'));
+        if ($komentarz) {
+            $podanie->setKomentarzOdrzucenia($komentarz);
+        }
+
+        $workflowFactory->getWorkflow()->apply($podanie, $transition);
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało odrzucone.');
+
+        return $this->redirectToRoute('grafik_podanie_lista', ['tab' => 'do_akceptacji']);
+    }
+
+    #[Route('/{id}/anuluj', name: 'grafik_podanie_anuluj', methods: ['POST'],
+        requirements: ['id' => '\d+'])]
+    public function anuluj(
+        int $id,
+        PodanieWorkflowFactory $workflowFactory,
+    ): Response {
+        $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
+        if (!$podanie) {
+            throw $this->createNotFoundException('Podanie nie istnieje.');
+        }
+
+        $workflow = $workflowFactory->getWorkflow();
+        if (!$workflow->can($podanie, 'anuluj')) {
+            $this->addFlash('danger', 'Nie można anulować tego podania.');
+            return $this->redirectToRoute('grafik_podanie_lista');
+        }
+
+        $workflow->apply($podanie, 'anuluj');
+        $podanie->setStatusZmienionyAt(new \DateTimeImmutable());
+        $podanie->setStatusPrzez($this->getUser());
+        $this->em->flush();
+
+        $this->addFlash('success', 'Podanie zostało anulowane.');
+
+        return $this->redirectToRoute('grafik_podanie_lista');
+    }
+
     #[Route('/{id}/delete', name: 'grafik_podanie_delete', methods: ['POST'],
         requirements: ['id' => '\d+'])]
     public function delete(
@@ -307,6 +541,12 @@ class PodanieController extends AbstractController
         $podanie = $this->em->getRepository(PodanieUrlopowe::class)->find($id);
         if ($podanie) {
             $this->denyUnlessCanAccess($podanie, $udRepo);
+
+            if (!$this->isGranted('ROLE_ADMIN')) {
+                $this->addFlash('danger', 'Tylko administrator może usunąć podanie.');
+                return $this->redirectToRoute('grafik_podanie_lista');
+            }
+
             $this->em->remove($podanie);
             $this->em->flush();
             $this->addFlash('success', 'Podanie zostało usunięte.');
@@ -350,7 +590,7 @@ class PodanieController extends AbstractController
             return;
         }
 
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_KADRY') || $this->isGranted('ROLE_NACZELNY')) {
             return;
         }
 

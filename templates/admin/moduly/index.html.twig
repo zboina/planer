@@ -1,0 +1,74 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Moduły — Panel planera{% endblock %}
+{% block panel_heading %}Moduły{% endblock %}
+
+{% block panel_content %}
+{% set trybLabels = {
+    'wszyscy': 'Wszyscy',
+    'role': 'Role',
+    'and': 'AND (rola + dept)',
+    'or': 'OR (rola / user / dept)',
+    'uzytkownicy': 'Użytkownicy'
+} %}
+
+<div class="table-responsive">
+    <table class="table table-vcenter card-table">
+        <thead>
+            <tr>
+                <th>Kod</th>
+                <th>Nazwa</th>
+                <th>Tryb dostępu</th>
+                <th>Kolejność</th>
+                <th>Aktywny</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in moduly %}
+            <tr>
+                <td><code>{{ m.kod }}</code></td>
+                <td>
+                    {% if m.ikona %}
+                        <i class="icon ti ti-{{ m.ikona }} me-1"></i>
+                    {% endif %}
+                    {{ m.nazwa }}
+                </td>
+                <td>
+                    <span class="badge bg-blue-lt">{{ trybLabels[m.trybDostepu] ?? m.trybDostepu }}</span>
+                </td>
+                <td>{{ m.kolejnosc }}</td>
+                <td>
+                    <label class="form-check form-switch mb-0">
+                        <input type="checkbox" class="form-check-input modul-toggle"
+                               data-id="{{ m.id }}"
+                               {{ m.aktywny ? 'checked' : '' }}>
+                    </label>
+                </td>
+                <td>
+                    <a href="{{ path('planer_admin_modul_edit', {id: m.id}) }}" class="btn btn-sm btn-warning">Edytuj</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">Brak modułów. Uruchom <code>planer:install</code> aby zainstalować domyślne moduły.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.querySelectorAll('.modul-toggle').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        fetch('{{ path('planer_admin_modul_toggle') }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: parseInt(this.dataset.id), aktywny: this.checked})
+        }).then(function(r) {
+            if (!r.ok) { location.reload(); }
+        });
+    });
+});
+</script>
+{% endblock %}

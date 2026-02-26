@@ -1,0 +1,79 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}{{ krok ? 'Edytuj krok workflow' : 'Nowy krok workflow' }}{% endblock %}
+{% block panel_heading %}{{ krok ? 'Edytuj krok workflow' : 'Nowy krok workflow' }}{% endblock %}
+
+{% block panel_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label required">Klucz</label>
+                <input type="text" name="key" class="form-control" value="{{ krok ? krok.key : '' }}"
+                       required pattern="[a-z_]+" placeholder="np. szef, kadry, naczelny"
+                       title="Tylko małe litery i podkreślenia">
+                <small class="form-hint">Unikalny identyfikator kroku (małe litery, bez spacji). Używany wewnętrznie.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label required">Nazwa wyświetlana</label>
+                <input type="text" name="label" class="form-control" value="{{ krok ? krok.label : '' }}"
+                       required placeholder="np. Szef działu, Kadry, Naczelny">
+            </div>
+            <div class="mb-3">
+                <label class="form-label required">Typ</label>
+                <div class="form-selectgroup">
+                    <label class="form-selectgroup-item">
+                        <input type="radio" name="type" value="department" class="form-selectgroup-input"
+                               {{ (krok and krok.type == 'department') or (not krok) ? 'checked' : '' }}>
+                        <span class="form-selectgroup-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M3 21l18 0"/>
+                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16"/>
+                            </svg>
+                            Departamentowy
+                        </span>
+                    </label>
+                    <label class="form-selectgroup-item">
+                        <input type="radio" name="type" value="global" class="form-selectgroup-input"
+                               {{ (krok and krok.type == 'global') ? 'checked' : '' }}>
+                        <span class="form-selectgroup-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+                                <path d="M12 7a5 5 0 1 0 5 5"/>
+                            </svg>
+                            Globalny (rola)
+                        </span>
+                    </label>
+                </div>
+                <small class="form-hint mt-1">
+                    <strong>Departamentowy:</strong> akceptacja przez szefa działu pracownika.<br>
+                    <strong>Globalny:</strong> akceptacja przez osobę z przypisaną rolą w zakładce Role.
+                </small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label required">Kolejność</label>
+                <input type="number" name="kolejnosc" class="form-control" value="{{ nextKolejnosc }}" required min="0">
+                <small class="form-hint">Niższy numer = wcześniejszy krok w łańcuchu akceptacji.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-check">
+                    <input type="checkbox" name="pomijalne" value="1" class="form-check-input"
+                           {{ (krok and krok.pomijalne) ? 'checked' : '' }}>
+                    <span class="form-check-label">Pomijalny (nieaktywny)</span>
+                </label>
+                <small class="form-hint">Zaznacz, aby tymczasowo wyłączyć ten krok z łańcucha akceptacji. Podania będą automatycznie pomijać ten etap.</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    {{ krok ? 'Zapisz zmiany' : 'Dodaj krok' }}
+                </button>
+                <a href="{{ path('planer_admin_workflow') }}" class="btn">Anuluj</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
