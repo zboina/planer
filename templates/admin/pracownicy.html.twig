@@ -53,12 +53,16 @@
                     {% for user in users %}
                     {% set ua = assignments[user.id] | default({}) %}
                     <tr class="user-row" data-name="{{ planer_name(user)|lower }}" data-email="{{ user.userIdentifier|lower }}">
+                        {% if planer_has_own_name(user) %}
+                        <td class="fw-bold" colspan="2">{{ planer_name(user) }}</td>
+                        {% else %}
                         <td>
                             <input type="text" class="form-control form-control-sm" name="firstName[{{ user.id }}]" value="{{ planer_first_name(user) }}" placeholder="Imię..." style="font-size:.78rem;">
                         </td>
                         <td>
                             <input type="text" class="form-control form-control-sm" name="lastName[{{ user.id }}]" value="{{ planer_last_name(user) }}" placeholder="Nazwisko..." style="font-size:.78rem;">
                         </td>
+                        {% endif %}
                         <td class="text-secondary" style="font-size:.78rem;">{{ user.userIdentifier }}</td>
                         <td>
                             <textarea class="form-control form-control-sm" name="adres[{{ user.id }}]" rows="2" placeholder="Adres pracownika..." style="font-size:.78rem;resize:vertical;">{{ planer_adres(user) }}</textarea>

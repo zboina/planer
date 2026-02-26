@@ -95,6 +95,25 @@ class PlanerUserResolver
         return $profile;
     }
 
+    /**
+     * Returns true if the User entity itself provides a name (via fullNameFields or getFullName()).
+     */
+    public function hasOwnName(object $user): bool
+    {
+        if (method_exists($user, 'getFullName') && $user->getFullName()) {
+            return true;
+        }
+
+        foreach ($this->fullNameFields as $field) {
+            $getter = 'get' . ucfirst($field);
+            if (method_exists($user, $getter) && $user->$getter()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getFirstName(object|int $user): ?string
     {
         return $this->getProfile($user)->getFirstName();
