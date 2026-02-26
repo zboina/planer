@@ -333,7 +333,8 @@ class PodanieController extends AbstractController
         if ($szablonEntity) {
             $polaFormularza = $szablonEntity->getPolaFormularza();
             if (in_array('zastepca', $polaFormularza, true)) {
-                $podanie->setZastepca($request->request->getString('zastepca'));
+                $zastepca = $request->request->getString('zastepca');
+                $podanie->setZastepca($zastepca ?: null);
             }
             if (in_array('telefon', $polaFormularza, true)) {
                 $podanie->setTelefon($request->request->getString('telefon'));
@@ -356,7 +357,8 @@ class PodanieController extends AbstractController
             // FALLBACK: old logic
             $szablon = $typZmiany?->getSzablonPodania() ?? 'urlop';
             if ($szablon === 'urlop') {
-                $podanie->setZastepca($request->request->getString('zastepca'));
+                $zastepca = $request->request->getString('zastepca');
+                $podanie->setZastepca($zastepca ?: null);
                 $podanie->setTelefon($request->request->getString('telefon'));
 
                 $typPodaniaId = $request->request->getInt('typ_podania_id');

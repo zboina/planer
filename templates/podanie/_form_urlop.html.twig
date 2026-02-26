@@ -16,6 +16,7 @@
             {% endfor %}
         </select>
     </div>
+    {% if wspolpracownicy|length > 0 %}
     <div class="col-md-3">
         <label class="form-label required" for="zastepca">Zastępca</label>
         <select class="form-select form-select-sm" id="zastepca" name="zastepca" required>
@@ -25,6 +26,7 @@
             {% endfor %}
         </select>
     </div>
+    {% endif %}
     <div class="col-md-3">
         <label class="form-label required" for="telefon">Telefon kontaktowy</label>
         <input type="text" class="form-control form-control-sm" id="telefon" name="telefon" required placeholder="np. 600 123 456">
