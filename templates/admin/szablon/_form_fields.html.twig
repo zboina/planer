@@ -27,7 +27,10 @@
         <div class="alert alert-info">
             <i class="ti ti-info-circle me-1"></i>
             Ten szablon został utworzony w starym edytorze HTML. Możesz go zostawić bez zmian lub
-            zaprojektować nowy układ na kanwie poniżej (nadpisze starą treść przy zapisie).
+            <button type="button" class="btn btn-sm btn-outline-primary ms-1" data-action="szablon-editor#importHtml">
+                <i class="ti ti-file-import me-1"></i>Zaimportuj HTML na kanwę
+            </button>
+            aby edytować wizualnie.
         </div>
     {% endif %}
 
@@ -107,6 +110,13 @@
 
                 {# Spacer #}
                 <div class="ms-auto"></div>
+
+                {# Import HTML #}
+                {% if szablon is defined and szablon and szablon.trescHtml and not szablon.canvasJson %}
+                    <button type="button" class="btn btn-sm btn-outline-warning" data-action="szablon-editor#importHtml" title="Importuj istniejący HTML na kanwę">
+                        <i class="ti ti-file-import"></i> Importuj HTML
+                    </button>
+                {% endif %}
 
                 {# Preview PDF #}
                 <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">

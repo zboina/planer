@@ -4,6 +4,7 @@ import * as fabric from 'fabric';
 const CANVAS_W = 794;
 const CANVAS_H = 1123;
 const PX_TO_PT = 0.75; // 96 DPI → 72 DPI
+const PT_TO_PX = 1 / PX_TO_PT; // 72 DPI → 96 DPI
 
 export default class extends Controller {
     static values = {
@@ -312,6 +313,128 @@ export default class extends Controller {
         obj.set('textAlign', 'right');
         this._fc.renderAll();
         this._syncState();
+    }
+
+    importHtml() {
+        if (!this.hasTrescHtmlTarget) return;
+        const html = this.trescHtmlTarget.value;
+        if (!html.trim()) {
+            alert('Brak treści HTML do zaimportowania.');
+            return;
+        }
+
+        // Potwierdź jeśli kanwa ma obiekty
+        const existing = this._fc.getObjects().filter(o => !o._isPageBorder);
+        if (existing.length > 0) {
+            if (!confirm('Kanwa zawiera obiekty. Import zastąpi je elementami z HTML. Kontynuować?')) {
+                return;
+            }
+            existing.forEach(obj => this._fc.remove(obj));
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const divs = doc.querySelectorAll('div[style*="position:absolute"], div[style*="position: absolute"]');
+
+        let imported = 0;
+        divs.forEach(div => {
+            const style = div.getAttribute('style') || '';
+            const obj = this._parseHtmlDiv(div, style);
+            if (obj) {
+                this._fc.add(obj);
+                imported++;
+            }
+        });
+
+        this._fc.renderAll();
+        this._syncState();
+        alert(`Zaimportowano ${imported} elementów na kanwę.`);
+    }
+
+    _parseHtmlDiv(div, style) {
+        const left = this._parsePt(style, /left:\s*([\d.]+)pt/) * PT_TO_PX;
+        const top = this._parsePt(style, /top:\s*([\d.]+)pt/) * PT_TO_PX;
+        const width = this._parsePt(style, /(?<!border-)width:\s*([\d.]+)pt/) * PT_TO_PX;
+        const height = this._parsePt(style, /(?<!border-)height:\s*([\d.]+)pt/) * PT_TO_PX;
+
+        // Linia — ma border-bottom ale nie ma height
+        const borderBottomMatch = style.match(/border-bottom:\s*([\d.]+)pt\s+solid\s+([^;"]+)/);
+        if (borderBottomMatch && !height) {
+            const strokeWidth = parseFloat(borderBottomMatch[1]) * PT_TO_PX;
+            const strokeColor = borderBottomMatch[2].trim();
+            return new fabric.Line([0, 0, width || 200, 0], {
+                left: left,
+                top: top,
+                stroke: strokeColor,
+                strokeWidth: Math.max(1, strokeWidth),
+            });
+        }
+
+        // Prostokąt — ma border i height
+        const borderMatch = style.match(/border:\s*([\d.]+)pt\s+solid\s+([^;"]+)/);
+        if (borderMatch && height) {
+            const strokeWidth = parseFloat(borderMatch[1]) * PT_TO_PX;
+            const strokeColor = borderMatch[2].trim();
+            const bgMatch = style.match(/background:\s*([^;"]+)/);
+            const fill = bgMatch ? bgMatch[1].trim() : 'transparent';
+            return new fabric.Rect({
+                left: left,
+                top: top,
+                width: width || 100,
+                height: height,
+                fill: fill,
+                stroke: strokeColor,
+                strokeWidth: Math.max(1, strokeWidth),
+            });
+        }
+
+        // Tekst — domyślnie
+        const fontSize = this._parsePt(style, /font-size:\s*([\d.]+)pt/) * PT_TO_PX || 12;
+        const isBold = /font-weight:\s*bold/.test(style);
+        const isItalic = /font-style:\s*italic/.test(style);
+        const alignMatch = style.match(/text-align:\s*(center|right|left)/);
+        const textAlign = alignMatch ? alignMatch[1] : 'left';
+        const colorMatch = style.match(/(?<!ground-)color:\s*([^;"]+)/);
+        const fill = colorMatch ? colorMatch[1].trim() : '#000000';
+
+        // Tekst z innerHTML — zamień <br> na \n, usuń tagi
+        let text = div.innerHTML
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'");
+
+        if (!text.trim()) return null;
+
+        const isPlaceholder = /\[\[.+\]\]/.test(text);
+
+        const textbox = new fabric.Textbox(text, {
+            left: left,
+            top: top,
+            width: width || 300,
+            fontSize: fontSize,
+            fontFamily: 'DejaVu Sans',
+            fill: fill,
+            fontWeight: isBold ? 'bold' : 'normal',
+            fontStyle: isItalic ? 'italic' : 'normal',
+            textAlign: textAlign,
+            editable: true,
+        });
+
+        if (isPlaceholder) {
+            textbox.isPlaceholder = true;
+            if (fill === '#000000') textbox.set('fill', '#1971c2');
+        }
+
+        return textbox;
+    }
+
+    _parsePt(style, regex) {
+        const m = style.match(regex);
+        return m ? parseFloat(m[1]) : 0;
     }
 
     previewPdf() {
