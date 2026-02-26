@@ -106,6 +106,20 @@ PHP;
             }
         }
 
+        // Auto-add fabric to importmap if missing
+        if (file_exists($importmapFile)) {
+            $content = file_get_contents($importmapFile);
+            if (!str_contains($content, "'fabric'")) {
+                $entry = <<<'PHP'
+    'fabric' => [
+        'version' => '6.6.1',
+    ],
+PHP;
+                $content = str_replace('];', $entry . "\n];", $content);
+                file_put_contents($importmapFile, $content);
+            }
+        }
+
         // Auto-create routes config in host project if missing
         $routesFile = $projectDir . '/config/routes/planer.yaml';
         if (!file_exists($routesFile)) {

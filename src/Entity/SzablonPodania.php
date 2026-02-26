@@ -23,6 +23,9 @@ class SzablonPodania
     #[ORM\Column(type: Types::JSON, options: ['default' => '[]'])]
     private array $polaFormularza = [];
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $canvasJson = null;
+
     #[ORM\Column(options: ['default' => true])]
     private bool $aktywny = true;
 
@@ -72,6 +75,17 @@ class SzablonPodania
     public function setPolaFormularza(array $polaFormularza): static
     {
         $this->polaFormularza = $polaFormularza;
+        return $this;
+    }
+
+    public function getCanvasJson(): ?string
+    {
+        return $this->canvasJson;
+    }
+
+    public function setCanvasJson(?string $canvasJson): static
+    {
+        $this->canvasJson = $canvasJson;
         return $this;
     }
 

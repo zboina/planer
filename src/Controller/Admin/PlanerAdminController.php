@@ -1275,6 +1275,7 @@ class PlanerAdminController extends AbstractController
             $szablon = new SzablonPodania();
             $szablon->setNazwa($request->request->getString('nazwa'));
             $szablon->setTrescHtml($request->request->getString('tresc_html'));
+            $szablon->setCanvasJson($request->request->getString('canvas_json') ?: null);
             $szablon->setPolaFormularza($request->request->all('pola_formularza') ?: []);
             $szablon->setAktywny($request->request->getBoolean('aktywny'));
 
@@ -1302,6 +1303,7 @@ class PlanerAdminController extends AbstractController
         if ($request->isMethod('POST')) {
             $szablon->setNazwa($request->request->getString('nazwa'));
             $szablon->setTrescHtml($request->request->getString('tresc_html'));
+            $szablon->setCanvasJson($request->request->getString('canvas_json') ?: null);
             $szablon->setPolaFormularza($request->request->all('pola_formularza') ?: []);
             $szablon->setAktywny($request->request->getBoolean('aktywny'));
             $szablon->setUpdatedAt(new \DateTime());
