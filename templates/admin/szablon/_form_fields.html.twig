@@ -85,6 +85,37 @@
                                 <i class="ti ti-square" style="font-size:0.85rem;"></i> Prostokąt
                             </button>
                         </div>
+                        <div class="d-flex gap-1 flex-wrap mt-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-action="szablon-editor#addImage" title="Dodaj obrazek">
+                                <i class="ti ti-photo" style="font-size:0.85rem;"></i> Obrazek
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-action="szablon-editor#addSignatureArea" title="Obszar podpisu">
+                                <i class="ti ti-signature" style="font-size:0.85rem;"></i> Podpis
+                            </button>
+                        </div>
+                        <input type="file" class="d-none" accept="image/*" data-szablon-editor-target="imageFile"
+                               data-action="change->szablon-editor#handleImageFile">
+                    </div>
+
+                    {# — Tryb rysowania — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Rysowanie</div>
+                        <div class="d-flex gap-1 align-items-center mb-1">
+                            <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" data-szablon-editor-target="drawBtn"
+                                    data-action="szablon-editor#toggleDrawing" title="Tryb rysowania odręcznego">
+                                <i class="ti ti-pencil" style="font-size:0.85rem;"></i> Rysuj
+                            </button>
+                            <input type="color" class="form-control form-control-sm form-control-color p-0 border-0"
+                                   data-szablon-editor-target="drawColor"
+                                   data-action="input->szablon-editor#updateDrawColor"
+                                   value="#000000" title="Kolor rysowania" style="width:24px;height:24px;">
+                        </div>
+                        <div class="d-flex gap-1 align-items-center">
+                            <label class="form-label mb-0" style="font-size:0.6rem;">Grubość:</label>
+                            <input type="range" class="form-range flex-grow-1" min="1" max="10" value="2" style="height:18px;"
+                                   data-szablon-editor-target="drawWidth"
+                                   data-action="input->szablon-editor#updateDrawWidth">
+                        </div>
                     </div>
 
                     {# — Placeholdery — #}

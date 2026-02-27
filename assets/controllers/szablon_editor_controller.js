@@ -21,6 +21,7 @@ export default class extends Controller {
         'placeholderSelect', 'fontSize', 'fontColor', 'fillColor',
         'propPanel', 'propX', 'propY', 'propW', 'propH', 'propAngle', 'propOpacity',
         'legacyMode', 'canvasMode', 'legacyTextarea',
+        'imageFile', 'drawBtn', 'drawColor', 'drawWidth',
         'pdfFile', 'bgOpacity', 'bgOpacityValue', 'bgControls',
         'fullscreenContainer',
     ];
@@ -191,6 +192,81 @@ export default class extends Controller {
         this._fc.add(r);
         this._fc.setActiveObject(r);
         this._fc.renderAll();
+    }
+
+    addImage() {
+        if (this.hasImageFileTarget) this.imageFileTarget.click();
+    }
+
+    handleImageFile() {
+        if (!this.hasImageFileTarget) return;
+        const file = this.imageFileTarget.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const img = await fabric.FabricImage.fromURL(e.target.result);
+            // Skaluj do max 300px szerokości
+            const maxW = 300;
+            if (img.width > maxW) {
+                const scale = maxW / img.width;
+                img.set({ scaleX: scale, scaleY: scale });
+            }
+            img.set({ left: 50, top: 50 });
+            this._fc.add(img);
+            this._fc.setActiveObject(img);
+            this._fc.renderAll();
+        };
+        reader.readAsDataURL(file);
+        this.imageFileTarget.value = '';
+    }
+
+    addSignatureArea() {
+        // Grupa: ramka + tekst "Podpis" + placeholder [[PODPIS]]
+        const rect = new fabric.Rect({
+            width: 250, height: 80,
+            fill: '#f8f9fa', stroke: '#adb5bd', strokeWidth: 1,
+            strokeDashArray: [5, 3],
+        });
+        const label = new fabric.FabricText('podpis', {
+            fontSize: 8, fill: '#adb5bd',
+            fontFamily: 'DejaVu Sans',
+            left: 5, top: 60,
+        });
+        const group = new fabric.Group([rect, label], {
+            left: 250, top: 750,
+        });
+        group._isSignatureArea = true;
+        this._fc.add(group);
+        this._fc.setActiveObject(group);
+        this._fc.renderAll();
+    }
+
+    // ── Drawing mode ─────────────────────────────────────────────
+
+    toggleDrawing() {
+        if (!this._fc) return;
+        this._fc.isDrawingMode = !this._fc.isDrawingMode;
+
+        if (this._fc.isDrawingMode) {
+            this._fc.freeDrawingBrush = new fabric.PencilBrush(this._fc);
+            this._fc.freeDrawingBrush.color = this.hasDrawColorTarget ? this.drawColorTarget.value : '#000000';
+            this._fc.freeDrawingBrush.width = this.hasDrawWidthTarget ? parseInt(this.drawWidthTarget.value, 10) : 2;
+            if (this.hasDrawBtnTarget) this.drawBtnTarget.classList.replace('btn-outline-warning', 'btn-warning');
+        } else {
+            if (this.hasDrawBtnTarget) this.drawBtnTarget.classList.replace('btn-warning', 'btn-outline-warning');
+        }
+    }
+
+    updateDrawColor() {
+        if (this._fc && this._fc.freeDrawingBrush) {
+            this._fc.freeDrawingBrush.color = this.drawColorTarget.value;
+        }
+    }
+
+    updateDrawWidth() {
+        if (this._fc && this._fc.freeDrawingBrush) {
+            this._fc.freeDrawingBrush.width = parseInt(this.drawWidthTarget.value, 10);
+        }
     }
 
     deleteSelected() {
@@ -559,7 +635,7 @@ export default class extends Controller {
         const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
 
         if (this.hasCanvasJsonTarget) {
-            this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder']));
+            this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder', '_isSignatureArea']));
         }
         if (objects.length > 0 && this.hasTrescHtmlTarget) {
             this.trescHtmlTarget.value = this._exportToHtml();
@@ -596,6 +672,26 @@ export default class extends Controller {
                 const sw = ((obj.strokeWidth || 1) * PX_TO_PT).toFixed(1);
                 const fill = obj.fill && obj.fill !== 'transparent' ? `background:${obj.fill};` : '';
                 parts.push(`<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;border:${sw}pt solid ${obj.stroke || '#000000'};${fill}"></div>`);
+            } else if (obj.type === 'image') {
+                const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+                const w = ((obj.width || 100) * sx * PX_TO_PT).toFixed(1);
+                const h = ((obj.height || 100) * sy * PX_TO_PT).toFixed(1);
+                const src = obj.getSrc ? obj.getSrc() : '';
+                if (src) {
+                    parts.push(`<img src="${src}" style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;">`);
+                }
+            } else if (obj.type === 'group' && obj._isSignatureArea) {
+                const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+                const w = ((obj.width || 250) * sx * PX_TO_PT).toFixed(1);
+                const h = ((obj.height || 80) * sy * PX_TO_PT).toFixed(1);
+                parts.push(`<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;border:0.75pt dashed #adb5bd;background:#f8f9fa;">[[PODPIS]]</div>`);
+            } else if (obj.type === 'path') {
+                // Freehand drawing path — export as SVG
+                const svg = obj.toSVG();
+                const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+                const w = ((obj.width || 50) * sx * PX_TO_PT).toFixed(1);
+                const h = ((obj.height || 50) * sy * PX_TO_PT).toFixed(1);
+                parts.push(`<svg style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;" viewBox="0 0 ${obj.width} ${obj.height}" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`);
             }
         });
 
