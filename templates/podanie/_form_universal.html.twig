@@ -89,10 +89,44 @@
 {% endif %}
 
 {% if 'podpis' in polaFormularza %}
-<div class="row mb-3">
-    <div class="col-md-4">
-        <label class="form-label" for="podpis">Podpis na wydruku</label>
-        <input type="text" class="form-control form-control-sm" id="podpis" name="podpis" placeholder="Opcjonalnie" value="">
+<div class="row mb-3" data-controller="signature-pad">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <label class="form-label mb-0" for="podpis_text">Podpis na wydruku</label>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-signature-pad-target="toggleBtn"
+                    data-action="signature-pad#toggle">
+                <i class="ti ti-signature me-1"></i>Podpisz odręcznie
+            </button>
+        </div>
+        <input type="hidden" name="podpis" value="" data-signature-pad-target="hiddenInput">
+        <div data-signature-pad-target="textContainer">
+            <input type="text" class="form-control form-control-sm" id="podpis_text"
+                   placeholder="Opcjonalnie — wpisz imię i nazwisko"
+                   data-signature-pad-target="textInput"
+                   data-action="input->signature-pad#syncText">
+        </div>
+        <div data-signature-pad-target="padContainer" style="display:none;">
+            <div class="border rounded p-1 bg-white" style="cursor:crosshair;">
+                <canvas data-signature-pad-target="canvas"
+                        style="width:100%;height:120px;display:block;touch-action:none;"
+                        data-action="mousedown->signature-pad#startDraw
+                                     mousemove->signature-pad#draw
+                                     mouseup->signature-pad#endDraw
+                                     mouseleave->signature-pad#endDraw
+                                     touchstart->signature-pad#startDraw
+                                     touchmove->signature-pad#draw
+                                     touchend->signature-pad#endDraw"></canvas>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted">Narysuj podpis myszką lub palcem</small>
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        data-signature-pad-target="clearBtn"
+                        data-action="signature-pad#clear">
+                    <i class="ti ti-eraser me-1"></i>Wyczyść
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}

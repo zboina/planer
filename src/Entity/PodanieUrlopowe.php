@@ -54,7 +54,7 @@ class PodanieUrlopowe
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $uzasadnienie = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $podpis = null;
 
     #[ORM\Column(length: 30)]

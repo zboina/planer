@@ -43,8 +43,12 @@ class PlaceholderReplacerService
 
         // Build podpis HTML
         $podpisHtml = '';
-        if ($podanie->getPodpis()) {
-            $podpisHtml = '<span style="font-style:italic;">' . htmlspecialchars($podanie->getPodpis(), ENT_QUOTES, 'UTF-8') . '</span>';
+        $podpisValue = $podanie->getPodpis();
+        if ($podpisValue && str_starts_with($podpisValue, 'data:image/')) {
+            // Handwritten signature — render as image
+            $podpisHtml = '<img src="' . $podpisValue . '" style="height:40px;max-width:200px;" alt="Podpis">';
+        } elseif ($podpisValue) {
+            $podpisHtml = '<span style="font-style:italic;">' . htmlspecialchars($podpisValue, ENT_QUOTES, 'UTF-8') . '</span>';
         } else {
             $podpisHtml = '<span style="border-bottom:1px dotted #999;display:inline-block;width:200px;height:14px;"></span>';
         }
@@ -177,7 +181,7 @@ class PlaceholderReplacerService
             '[[ZASTEPCA]]' => 'Zastępca',
             '[[TELEFON]]' => 'Telefon kontaktowy',
             '[[UZASADNIENIE]]' => 'Uzasadnienie (opcjonalne)',
-            '[[PODPIS]]' => 'Podpis (tekst lub pusta linia)',
+            '[[PODPIS]]' => 'Podpis (tekst, obrazek odręczny lub pusta linia)',
             '[[TYP_PODANIA_SKRESLENIE]]' => 'Typ podania z skreśleniami (HTML)',
             '[[URLOP_CZAS_SKRESLENIE]]' => 'urlopu/czasu wolnego — z skreśleniem (HTML)',
             '[[RODZAJ_URLOPU]]' => 'Rodzaj urlopu',
