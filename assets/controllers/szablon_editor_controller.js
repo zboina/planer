@@ -36,6 +36,7 @@ export default class extends Controller {
         'bgOpacity',
         'bgOpacityValue',
         'bgControls',
+        'fullscreenContainer',
     ];
 
     connect() {
@@ -534,6 +535,77 @@ export default class extends Controller {
         document.body.appendChild(form);
         form.submit();
         form.remove();
+    }
+
+    // ── Fullscreen ───────────────────────────────────────────────
+
+    toggleFullscreen() {
+        if (!this.hasFullscreenContainerTarget) return;
+        const container = this.fullscreenContainerTarget;
+
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                this._applyFullscreenStyle();
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    _applyFullscreenStyle() {
+        const container = this.fullscreenContainerTarget;
+
+        const onFsChange = () => {
+            if (document.fullscreenElement === container) {
+                // Wejście w fullscreen
+                container.style.background = '#e9ecef';
+                container.style.overflow = 'auto';
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+
+                // Skaluj kanwę żeby mieściła się na ekranie
+                this._scaleCanvasToFit();
+                this._fsResizeHandler = () => this._scaleCanvasToFit();
+                window.addEventListener('resize', this._fsResizeHandler);
+            } else {
+                // Wyjście z fullscreen
+                container.style.background = '';
+                container.style.overflow = '';
+                container.style.display = '';
+                container.style.flexDirection = '';
+
+                // Przywróć skalę kanwy
+                this._resetCanvasScale();
+                if (this._fsResizeHandler) {
+                    window.removeEventListener('resize', this._fsResizeHandler);
+                    this._fsResizeHandler = null;
+                }
+                document.removeEventListener('fullscreenchange', onFsChange);
+            }
+        };
+        document.addEventListener('fullscreenchange', onFsChange);
+    }
+
+    _scaleCanvasToFit() {
+        if (!this._fc) return;
+        const container = this.fullscreenContainerTarget;
+        // Wysokość dostępna = ekran minus toolbar (~120px zapasu)
+        const availH = container.clientHeight - 160;
+        const availW = container.clientWidth - 60;
+
+        const scaleH = availH / CANVAS_H;
+        const scaleW = availW / CANVAS_W;
+        const scale = Math.min(scaleH, scaleW, 1); // nie powiększaj ponad 1
+
+        const wrapper = this.canvasTarget.parentElement.parentElement;
+        wrapper.style.transform = `scale(${scale})`;
+        wrapper.style.transformOrigin = 'top center';
+    }
+
+    _resetCanvasScale() {
+        const wrapper = this.canvasTarget.parentElement.parentElement;
+        wrapper.style.transform = '';
+        wrapper.style.transformOrigin = '';
     }
 
     // ── PDF background (wzór) ────────────────────────────────────

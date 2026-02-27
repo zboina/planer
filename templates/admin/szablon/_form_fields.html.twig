@@ -80,6 +80,9 @@
             </div>
         {% endif %}
 
+        {# ── Fullscreen container ── #}
+        <div data-szablon-editor-target="fullscreenContainer">
+
         {# ── Toolbar ── #}
         <div class="card mb-3" data-szablon-editor-target="toolbar">
             <div class="card-body py-2">
@@ -160,6 +163,11 @@
                     {# Preview PDF #}
                     <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
                         <i class="ti ti-file-type-pdf"></i> Podgląd PDF
+                    </button>
+
+                    {# Fullscreen #}
+                    <button type="button" class="btn btn-sm btn-outline-dark" data-action="szablon-editor#toggleFullscreen" title="Pełny ekran">
+                        <i class="ti ti-maximize"></i>
                     </button>
                 </div>
             </div>
@@ -247,6 +255,8 @@
                 </div>
             </div>
         </div>
+
+        </div>{# /fullscreenContainer #}
     </div>
 
     {# ── Hidden inputs (managed by Stimulus) ── #}
