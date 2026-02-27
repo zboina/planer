@@ -17,8 +17,8 @@ export default class extends Controller {
     };
 
     static targets = [
-        'canvas', 'trescHtml', 'canvasJson', 'toolbar',
-        'placeholderSelect', 'fontSize', 'fontColor', 'fillColor', 'rotation',
+        'canvas', 'trescHtml', 'canvasJson', 'sidebar',
+        'placeholderSelect', 'fontSize', 'fontColor', 'fillColor',
         'propPanel', 'propX', 'propY', 'propW', 'propH', 'propAngle', 'propOpacity',
         'legacyMode', 'canvasMode', 'legacyTextarea',
         'pdfFile', 'bgOpacity', 'bgOpacityValue', 'bgControls',
@@ -142,7 +142,6 @@ export default class extends Controller {
         if (this.hasFillColorTarget) {
             this.fillColorTarget.value = (obj.type === 'rect' && obj.fill && obj.fill !== 'transparent') ? obj.fill : '#ffffff';
         }
-        if (this.hasRotationTarget) this.rotationTarget.value = Math.round(obj.angle || 0);
         if (this.hasPropXTarget) this.propXTarget.value = Math.round(obj.left || 0);
         if (this.hasPropYTarget) this.propYTarget.value = Math.round(obj.top || 0);
         if (this.hasPropWTarget) this.propWTarget.value = Math.round((obj.width || 0) * sx);
@@ -246,14 +245,6 @@ export default class extends Controller {
         } else if (obj.type === 'textbox') {
             obj.set('backgroundColor', color === '#ffffff' ? '' : color);
         }
-        this._fc.renderAll(); this._syncState();
-    }
-
-    updateRotation() {
-        const obj = this._fc.getActiveObject();
-        if (!obj) return;
-        obj.set('angle', parseFloat(this.rotationTarget.value) || 0);
-        obj.setCoords();
         this._fc.renderAll(); this._syncState();
     }
 

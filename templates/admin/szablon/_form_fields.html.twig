@@ -24,266 +24,255 @@
                placeholder="np. Podanie o urlop">
     </div>
 
-    {# ── Legacy: tryb HTML ── #}
+    {# ══ Legacy: tryb HTML ══ #}
     <div data-szablon-editor-target="legacyMode" class="{{ not isLegacy ? 'd-none' : '' }}">
-        <div class="alert alert-info d-flex align-items-center justify-content-between">
-            <div>
-                <i class="ti ti-info-circle me-1"></i>
-                Ten szablon używa ręcznego kodu HTML.
-            </div>
+        <div class="alert alert-info d-flex align-items-center justify-content-between mb-2">
+            <div><i class="ti ti-info-circle me-1"></i> Ten szablon używa ręcznego kodu HTML.</div>
             <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#switchToCanvas">
                 <i class="ti ti-artboard me-1"></i>Przełącz na edytor wizualny
             </button>
         </div>
-
         <div class="mb-3">
-            <label class="form-label" for="legacy_tresc_html">Treść HTML szablonu</label>
             <textarea class="form-control" id="legacy_tresc_html" data-szablon-editor-target="legacyTextarea" rows="20"
-                      style="font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; tab-size: 4;">{{ szablon is defined and szablon ? szablon.trescHtml : '' }}</textarea>
-            <small class="form-hint">Pełny dokument HTML z placeholderami [[...]] do podmiany.</small>
+                      style="font-family:'SFMono-Regular',Menlo,Monaco,Consolas,monospace;font-size:0.82rem;tab-size:4;">{{ szablon is defined and szablon ? szablon.trescHtml : '' }}</textarea>
         </div>
-
         <div class="mb-3">
-            <label class="form-label">Dostępne placeholdery</label>
+            <label class="form-label small">Placeholdery</label>
             <div class="d-flex flex-wrap gap-1">
                 {% for placeholder, opis in placeholders %}
-                    <button type="button" class="btn btn-sm btn-outline-primary"
+                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size:0.7rem;"
                             data-action="szablon-editor#insertPlaceholderLegacy"
-                            data-placeholder="{{ placeholder }}" title="{{ opis }}">
-                        {{ placeholder }}
-                    </button>
+                            data-placeholder="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</button>
                 {% endfor %}
             </div>
         </div>
-
-        <div class="mb-3">
-            <button type="button" class="btn btn-outline-info" data-action="szablon-editor#previewPdf">
-                <i class="ti ti-file-type-pdf me-1"></i>Podgląd PDF
-            </button>
-        </div>
+        <button type="button" class="btn btn-sm btn-outline-info mb-3" data-action="szablon-editor#previewPdf">
+            <i class="ti ti-file-type-pdf me-1"></i>Podgląd PDF
+        </button>
     </div>
 
-    {# ══════════════════════════════════════════════════════════════ #}
-    {# ── Canvas: tryb wizualny                                   ── #}
-    {# ══════════════════════════════════════════════════════════════ #}
+    {# ══ Canvas: tryb wizualny ══ #}
     <div data-szablon-editor-target="canvasMode" class="{{ isLegacy ? 'd-none' : '' }}">
 
         {% if isLegacy %}
-            <div class="alert alert-warning d-flex align-items-center justify-content-between">
-                <div><i class="ti ti-artboard me-1"></i> Edytor wizualny — nowy szablon zostanie zapisany w formacie kanwy.</div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#switchToLegacy">
-                    <i class="ti ti-code me-1"></i>Wróć do edytora HTML
+            <div class="alert alert-warning d-flex align-items-center justify-content-between mb-2 py-1">
+                <div><i class="ti ti-artboard me-1"></i> Edytor wizualny</div>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0" data-action="szablon-editor#switchToLegacy">
+                    <i class="ti ti-code me-1"></i>Wróć do HTML
                 </button>
             </div>
         {% endif %}
 
         <div data-szablon-editor-target="fullscreenContainer">
+            <div class="d-flex gap-0" style="min-height: 600px;">
 
-            {# ── Toolbar — wiersz 1: Obiekty + Placeholdery ── #}
-            <div class="card mb-2" data-szablon-editor-target="toolbar">
-                <div class="card-body py-2 px-3">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        {# Dodawanie obiektów #}
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addText" title="Dodaj tekst">
-                                <i class="ti ti-text-size"></i> Tekst
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addLine" title="Dodaj linię">
-                                <i class="ti ti-line"></i> Linia
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addRect" title="Dodaj prostokąt">
-                                <i class="ti ti-square"></i> Prostokąt
-                            </button>
-                        </div>
+                {# ╔══════════════════════════════════╗ #}
+                {# ║  LEWY SIDEBAR                    ║ #}
+                {# ╚══════════════════════════════════╝ #}
+                <div class="border-end bg-white" style="width:210px; flex-shrink:0; overflow-y:auto; font-size:0.8rem;" data-szablon-editor-target="sidebar">
 
-                        <div class="vr"></div>
-
-                        {# Placeholdery #}
-                        <div class="input-group input-group-sm" style="width: auto;">
-                            <select class="form-select form-select-sm" data-szablon-editor-target="placeholderSelect" style="max-width: 220px;">
-                                <option value="">-- Placeholder --</option>
-                                {% for placeholder, opis in placeholders %}
-                                    <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#addPlaceholder">
-                                Wstaw
+                    {# — Dodaj elementy — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Dodaj element</div>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-action="szablon-editor#addText" title="Dodaj tekst">
+                                <i class="ti ti-text-size" style="font-size:0.85rem;"></i> Tekst
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-action="szablon-editor#addLine" title="Linia">
+                                <i class="ti ti-line" style="font-size:0.85rem;"></i> Linia
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-action="szablon-editor#addRect" title="Prostokąt">
+                                <i class="ti ti-square" style="font-size:0.85rem;"></i> Prostokąt
                             </button>
                         </div>
+                    </div>
 
-                        <div class="vr"></div>
+                    {# — Placeholdery — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Placeholder</div>
+                        <select class="form-select form-select-sm mb-1" data-szablon-editor-target="placeholderSelect" style="font-size:0.75rem;">
+                            <option value="">-- wybierz --</option>
+                            {% for placeholder, opis in placeholders %}
+                                <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 w-100" data-action="szablon-editor#addPlaceholder">
+                            <i class="ti ti-plus" style="font-size:0.8rem;"></i> Wstaw placeholder
+                        </button>
+                    </div>
 
-                        {# Formatowanie tekstu #}
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
+                    {# — Formatowanie tekstu — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Formatowanie</div>
+                        <div class="d-flex gap-1 align-items-center mb-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
                                 <i class="ti ti-bold"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
                                 <i class="ti ti-italic"></i>
                             </button>
-                        </div>
-
-                        {# Rozmiar czcionki #}
-                        <div class="input-group input-group-sm" style="width: 80px;">
-                            <input type="number" class="form-control form-control-sm text-center" min="4" max="200" value="12"
-                                   data-szablon-editor-target="fontSize"
-                                   data-action="change->szablon-editor#updateFontSize keydown->szablon-editor#preventSubmit"
-                                   title="Rozmiar czcionki (pt)">
-                        </div>
-
-                        {# Kolor fontu #}
-                        <input type="color" class="form-control form-control-sm form-control-color p-0 border-0"
-                               data-szablon-editor-target="fontColor"
-                               data-action="input->szablon-editor#updateFontColor"
-                               value="#000000" title="Kolor tekstu" style="width:28px;height:28px;">
-
-                        {# Kolor tła elementu #}
-                        <input type="color" class="form-control form-control-sm form-control-color p-0 border-0"
-                               data-szablon-editor-target="fillColor"
-                               data-action="input->szablon-editor#updateFillColor"
-                               value="#ffffff" title="Kolor tła elementu" style="width:28px;height:28px;">
-
-                        <div class="vr"></div>
-
-                        {# Wyrównanie #}
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignLeft" title="Do lewej">
+                            <div class="vr mx-1"></div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="szablon-editor#alignLeft" title="Do lewej">
                                 <i class="ti ti-align-left"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
                                 <i class="ti ti-align-center"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignRight" title="Do prawej">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="szablon-editor#alignRight" title="Do prawej">
                                 <i class="ti ti-align-right"></i>
                             </button>
                         </div>
-
-                        <div class="vr"></div>
-
-                        {# Obrót #}
-                        <div class="input-group input-group-sm" style="width: 80px;">
-                            <input type="number" class="form-control form-control-sm text-center" min="-360" max="360" value="0"
-                                   data-szablon-editor-target="rotation"
-                                   data-action="change->szablon-editor#updateRotation keydown->szablon-editor#preventSubmit"
-                                   title="Obrót (stopnie)">
-                            <span class="input-group-text px-1" style="font-size:0.7rem;">°</span>
-                        </div>
-
-                        <div class="vr"></div>
-
-                        {# Usuń #}
-                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#deleteSelected" title="Usuń zaznaczone (Delete)">
-                            <i class="ti ti-trash"></i>
-                        </button>
-
-                        <div class="ms-auto"></div>
-
-                        {# Podgląd PDF #}
-                        <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
-                            <i class="ti ti-file-type-pdf"></i>
-                        </button>
-
-                        {# Fullscreen #}
-                        <button type="button" class="btn btn-sm btn-outline-dark" data-action="szablon-editor#toggleFullscreen" title="Pełny ekran">
-                            <i class="ti ti-maximize"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {# ── Wzór z PDF ── #}
-            <div class="card mb-2">
-                <div class="card-body py-1 px-3">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <label class="form-label mb-0 small fw-bold">
-                            <i class="ti ti-file-type-pdf me-1"></i>Wzór PDF:
-                        </label>
-                        <input type="file" class="form-control form-control-sm" accept=".pdf,application/pdf"
-                               data-szablon-editor-target="pdfFile"
-                               data-action="change->szablon-editor#loadPdfBackground"
-                               style="max-width: 250px;">
-
-                        <div class="d-none d-flex align-items-center gap-2" data-szablon-editor-target="bgControls">
-                            <input type="range" class="form-range" min="5" max="100" value="30"
-                                   data-szablon-editor-target="bgOpacity"
-                                   data-action="input->szablon-editor#updateBgOpacity"
-                                   style="width: 100px;">
-                            <span class="small text-muted" style="min-width:32px" data-szablon-editor-target="bgOpacityValue">30%</span>
-                            <button type="button" class="btn btn-sm btn-outline-danger py-0" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
-                                <i class="ti ti-x"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {# ── Kanwa + Panel właściwości ── #}
-            <div class="d-flex gap-3 mb-3">
-                {# Kanwa #}
-                <div class="flex-grow-1" style="min-width:0;">
-                    <div style="background:#e9ecef; padding:16px; border-radius:4px; overflow:auto; display:flex; justify-content:center;">
-                        <div style="box-shadow:0 2px 12px rgba(0,0,0,0.15);">
-                            <canvas data-szablon-editor-target="canvas"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                {# Panel właściwości — widoczny gdy coś zaznaczone #}
-                <div style="width:180px; flex-shrink:0;">
-                    <div class="card d-none" data-szablon-editor-target="propPanel">
-                        <div class="card-header py-1 px-2">
-                            <h4 class="card-title mb-0 small fw-bold">Właściwości</h4>
-                        </div>
-                        <div class="card-body py-2 px-2">
-                            <div class="row g-1 mb-1">
-                                <div class="col-6">
-                                    <label class="form-label mb-0" style="font-size:0.65rem;">X</label>
-                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
-                                           data-szablon-editor-target="propX"
-                                           data-action="change->szablon-editor#updatePropX keydown->szablon-editor#preventSubmit">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label mb-0" style="font-size:0.65rem;">Y</label>
-                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
-                                           data-szablon-editor-target="propY"
-                                           data-action="change->szablon-editor#updatePropY keydown->szablon-editor#preventSubmit">
-                                </div>
+                        <div class="row g-1">
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.65rem;">Rozmiar</label>
+                                <input type="number" class="form-control form-control-sm text-center" style="font-size:0.75rem;"
+                                       min="4" max="200" value="12"
+                                       data-szablon-editor-target="fontSize"
+                                       data-action="change->szablon-editor#updateFontSize keydown->szablon-editor#preventSubmit">
                             </div>
-                            <div class="row g-1 mb-1">
-                                <div class="col-6">
-                                    <label class="form-label mb-0" style="font-size:0.65rem;">Szer.</label>
-                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
-                                           data-szablon-editor-target="propW"
-                                           data-action="change->szablon-editor#updatePropW keydown->szablon-editor#preventSubmit">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label mb-0" style="font-size:0.65rem;">Wys.</label>
-                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
-                                           data-szablon-editor-target="propH"
-                                           data-action="change->szablon-editor#updatePropH keydown->szablon-editor#preventSubmit">
-                                </div>
+                            <div class="col-3">
+                                <label class="form-label mb-0" style="font-size:0.65rem;">Kolor</label>
+                                <input type="color" class="form-control form-control-sm form-control-color w-100 p-0"
+                                       data-szablon-editor-target="fontColor"
+                                       data-action="input->szablon-editor#updateFontColor"
+                                       value="#000000" title="Kolor tekstu" style="height:26px;">
                             </div>
-                            <div class="mb-1">
-                                <label class="form-label mb-0" style="font-size:0.65rem;">Obrót</label>
+                            <div class="col-3">
+                                <label class="form-label mb-0" style="font-size:0.65rem;">Tło</label>
+                                <input type="color" class="form-control form-control-sm form-control-color w-100 p-0"
+                                       data-szablon-editor-target="fillColor"
+                                       data-action="input->szablon-editor#updateFillColor"
+                                       value="#ffffff" title="Kolor tła" style="height:26px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    {# — Właściwości zaznaczonego — #}
+                    <div class="px-2 py-2 border-bottom d-none" data-szablon-editor-target="propPanel">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Właściwości</div>
+                        <div class="row g-1 mb-1">
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">X</label>
+                                <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                       data-szablon-editor-target="propX"
+                                       data-action="change->szablon-editor#updatePropX keydown->szablon-editor#preventSubmit">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">Y</label>
+                                <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                       data-szablon-editor-target="propY"
+                                       data-action="change->szablon-editor#updatePropY keydown->szablon-editor#preventSubmit">
+                            </div>
+                        </div>
+                        <div class="row g-1 mb-1">
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">Szerokość</label>
+                                <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                       data-szablon-editor-target="propW"
+                                       data-action="change->szablon-editor#updatePropW keydown->szablon-editor#preventSubmit">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">Wysokość</label>
+                                <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                       data-szablon-editor-target="propH"
+                                       data-action="change->szablon-editor#updatePropH keydown->szablon-editor#preventSubmit">
+                            </div>
+                        </div>
+                        <div class="row g-1 mb-1">
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">Obrót</label>
                                 <div class="input-group input-group-sm">
                                     <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
                                            data-szablon-editor-target="propAngle"
                                            data-action="change->szablon-editor#updatePropAngle keydown->szablon-editor#preventSubmit">
-                                    <span class="input-group-text px-1" style="font-size:0.65rem;">°</span>
+                                    <span class="input-group-text px-1" style="font-size:0.6rem;">°</span>
                                 </div>
                             </div>
-                            <div class="mb-1">
-                                <label class="form-label mb-0" style="font-size:0.65rem;">Przezroczystość</label>
-                                <input type="range" class="form-range" min="0" max="100" value="100"
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size:0.6rem;">Przezroczystość</label>
+                                <input type="range" class="form-range" min="0" max="100" value="100" style="height:26px;"
                                        data-szablon-editor-target="propOpacity"
-                                       data-action="input->szablon-editor#updatePropOpacity"
-                                       style="height:20px;">
+                                       data-action="input->szablon-editor#updatePropOpacity">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0 w-100" data-action="szablon-editor#deleteSelected">
+                            <i class="ti ti-trash" style="font-size:0.8rem;"></i> Usuń zaznaczone
+                        </button>
+                    </div>
+
+                    {# — Wzór z PDF — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Wzór z PDF</div>
+                        <input type="file" class="form-control form-control-sm mb-1" accept=".pdf,application/pdf" style="font-size:0.7rem;"
+                               data-szablon-editor-target="pdfFile"
+                               data-action="change->szablon-editor#loadPdfBackground">
+                        <div class="d-none" data-szablon-editor-target="bgControls">
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="range" class="form-range flex-grow-1" min="5" max="100" value="30" style="height:20px;"
+                                       data-szablon-editor-target="bgOpacity"
+                                       data-action="input->szablon-editor#updateBgOpacity">
+                                <span class="text-muted" style="font-size:0.65rem; min-width:28px;" data-szablon-editor-target="bgOpacityValue">30%</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
+                                    <i class="ti ti-x" style="font-size:0.75rem;"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
+                    {# — Pola formularza — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Pola formularza</div>
+                        {% set polaOpcje = {
+                            typ_podania: 'Typ podania',
+                            rodzaj_urlopu: 'Rodzaj urlopu',
+                            zastepca: 'Zastępca',
+                            telefon: 'Telefon',
+                            uzasadnienie: 'Uzasadnienie',
+                            podpis: 'Podpis',
+                            adres: 'Adres'
+                        } %}
+                        {% set currentPola = szablon is defined and szablon ? szablon.polaFormularza : [] %}
+                        {% for key, label in polaOpcje %}
+                            <label class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" name="pola_formularza[]" value="{{ key }}"
+                                       {{ key in currentPola ? 'checked' : '' }} style="width:14px;height:14px;">
+                                <span class="form-check-label" style="font-size:0.75rem;">{{ label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    {# — Aktywny — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <label class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" name="aktywny" value="1"
+                                   {{ (szablon is not defined or szablon is null or szablon.aktywny) ? 'checked' : '' }} style="width:14px;height:14px;">
+                            <span class="form-check-label fw-bold" style="font-size:0.75rem;">Aktywny</span>
+                        </label>
+                    </div>
+
+                    {# — Akcje — #}
+                    <div class="px-2 py-2">
+                        <div class="d-grid gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-info py-0" data-action="szablon-editor#previewPdf">
+                                <i class="ti ti-file-type-pdf" style="font-size:0.8rem;"></i> Podgląd PDF
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-dark py-0" data-action="szablon-editor#toggleFullscreen">
+                                <i class="ti ti-maximize" style="font-size:0.8rem;"></i> Pełny ekran
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {# ╔══════════════════════════════════╗ #}
+                {# ║  OBSZAR KANWY                    ║ #}
+                {# ╚══════════════════════════════════╝ #}
+                <div class="flex-grow-1" style="min-width:0; background:#e9ecef; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:16px;">
+                    <div style="box-shadow:0 2px 12px rgba(0,0,0,0.15);">
+                        <canvas data-szablon-editor-target="canvas"></canvas>
+                    </div>
+                </div>
+
+            </div>
         </div>{# /fullscreenContainer #}
     </div>
 
@@ -292,38 +281,5 @@
            value="{{ szablon is defined and szablon ? szablon.trescHtml|e('html_attr') : '' }}">
     <input type="hidden" name="canvas_json" data-szablon-editor-target="canvasJson"
            value="{{ canvasJson|e('html_attr') }}">
-
-    {# ── Pola formularza ── #}
-    <div class="mb-3">
-        <label class="form-label">Pola formularza</label>
-        <div class="d-flex flex-wrap gap-3">
-            {% set polaOpcje = {
-                typ_podania: 'Typ podania',
-                rodzaj_urlopu: 'Rodzaj urlopu',
-                zastepca: 'Zastępca',
-                telefon: 'Telefon',
-                uzasadnienie: 'Uzasadnienie',
-                podpis: 'Podpis',
-                adres: 'Adres'
-            } %}
-            {% set currentPola = szablon is defined and szablon ? szablon.polaFormularza : [] %}
-            {% for key, label in polaOpcje %}
-                <label class="form-check">
-                    <input class="form-check-input" type="checkbox" name="pola_formularza[]" value="{{ key }}"
-                           {{ key in currentPola ? 'checked' : '' }}>
-                    <span class="form-check-label">{{ label }}</span>
-                </label>
-            {% endfor %}
-        </div>
-    </div>
-
-    {# ── Aktywny ── #}
-    <div class="mb-3">
-        <label class="form-check">
-            <input class="form-check-input" type="checkbox" name="aktywny" value="1"
-                   {{ (szablon is not defined or szablon is null or szablon.aktywny) ? 'checked' : '' }}>
-            <span class="form-check-label">Aktywny</span>
-        </label>
-    </div>
 
 </div>
