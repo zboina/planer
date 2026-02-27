@@ -54,218 +54,246 @@
                     </button>
                 {% endfor %}
             </div>
-            <small class="form-hint">Kliknij placeholder aby wstawić go na pozycji kursora w edytorze.</small>
         </div>
 
         <div class="mb-3">
             <button type="button" class="btn btn-outline-info" data-action="szablon-editor#previewPdf">
                 <i class="ti ti-file-type-pdf me-1"></i>Podgląd PDF
             </button>
-            <small class="form-hint d-block mt-1">Generuje PDF z przykładowymi danymi na podstawie bieżącej treści.</small>
         </div>
     </div>
 
-    {# ── Canvas: tryb wizualny ── #}
+    {# ══════════════════════════════════════════════════════════════ #}
+    {# ── Canvas: tryb wizualny                                   ── #}
+    {# ══════════════════════════════════════════════════════════════ #}
     <div data-szablon-editor-target="canvasMode" class="{{ isLegacy ? 'd-none' : '' }}">
 
         {% if isLegacy %}
             <div class="alert alert-warning d-flex align-items-center justify-content-between">
-                <div>
-                    <i class="ti ti-artboard me-1"></i>
-                    Edytor wizualny — nowy szablon zostanie zapisany w formacie kanwy.
-                </div>
+                <div><i class="ti ti-artboard me-1"></i> Edytor wizualny — nowy szablon zostanie zapisany w formacie kanwy.</div>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#switchToLegacy">
                     <i class="ti ti-code me-1"></i>Wróć do edytora HTML
                 </button>
             </div>
         {% endif %}
 
-        {# ── Fullscreen container ── #}
         <div data-szablon-editor-target="fullscreenContainer">
 
-        {# ── Toolbar ── #}
-        <div class="card mb-3" data-szablon-editor-target="toolbar">
-            <div class="card-body py-2">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    {# Add objects #}
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addText" title="Dodaj tekst">
-                            <i class="ti ti-text-size"></i> Tekst
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addLine" title="Dodaj linię">
-                            <i class="ti ti-line"></i> Linia
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addRect" title="Dodaj prostokąt">
-                            <i class="ti ti-square"></i> Prostokąt
-                        </button>
-                    </div>
+            {# ── Toolbar — wiersz 1: Obiekty + Placeholdery ── #}
+            <div class="card mb-2" data-szablon-editor-target="toolbar">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        {# Dodawanie obiektów #}
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addText" title="Dodaj tekst">
+                                <i class="ti ti-text-size"></i> Tekst
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addLine" title="Dodaj linię">
+                                <i class="ti ti-line"></i> Linia
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="szablon-editor#addRect" title="Dodaj prostokąt">
+                                <i class="ti ti-square"></i> Prostokąt
+                            </button>
+                        </div>
 
-                    <div class="vr"></div>
+                        <div class="vr"></div>
 
-                    {# Placeholders #}
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <select class="form-select form-select-sm" data-szablon-editor-target="placeholderSelect" style="max-width: 220px;">
-                            <option value="">-- Placeholder --</option>
-                            {% for placeholder, opis in placeholders %}
-                                <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#addPlaceholder">
-                            Wstaw
-                        </button>
-                    </div>
+                        {# Placeholdery #}
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <select class="form-select form-select-sm" data-szablon-editor-target="placeholderSelect" style="max-width: 220px;">
+                                <option value="">-- Placeholder --</option>
+                                {% for placeholder, opis in placeholders %}
+                                    <option value="{{ placeholder }}" title="{{ opis }}">{{ placeholder }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#addPlaceholder">
+                                Wstaw
+                            </button>
+                        </div>
 
-                    <div class="vr"></div>
+                        <div class="vr"></div>
 
-                    {# Formatting #}
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
-                            <i class="ti ti-bold"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
-                            <i class="ti ti-italic"></i>
-                        </button>
-                    </div>
+                        {# Formatowanie tekstu #}
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleBold" title="Pogrubienie (Ctrl+B)">
+                                <i class="ti ti-bold"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#toggleItalic" title="Kursywa (Ctrl+I)">
+                                <i class="ti ti-italic"></i>
+                            </button>
+                        </div>
 
-                    {# Font size #}
-                    <div class="input-group input-group-sm" style="width: 90px;">
-                        <input type="number" class="form-control form-control-sm" min="6" max="200" value="12"
-                               data-szablon-editor-target="fontSize"
-                               data-action="change->szablon-editor#updateFontSize"
-                               title="Rozmiar czcionki">
-                    </div>
-
-                    <div class="vr"></div>
-
-                    {# Alignment #}
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignLeft" title="Do lewej">
-                            <i class="ti ti-align-left"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
-                            <i class="ti ti-align-center"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignRight" title="Do prawej">
-                            <i class="ti ti-align-right"></i>
-                        </button>
-                    </div>
-
-                    <div class="vr"></div>
-
-                    {# Delete #}
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#deleteSelected" title="Usuń zaznaczone (Delete)">
-                        <i class="ti ti-trash"></i> Usuń
-                    </button>
-
-                    {# Spacer #}
-                    <div class="ms-auto"></div>
-
-                    {# Preview PDF #}
-                    <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
-                        <i class="ti ti-file-type-pdf"></i> Podgląd PDF
-                    </button>
-
-                    {# Fullscreen #}
-                    <button type="button" class="btn btn-sm btn-outline-dark" data-action="szablon-editor#toggleFullscreen" title="Pełny ekran">
-                        <i class="ti ti-maximize"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        {# ── Wzór z PDF ── #}
-        <div class="card mb-3">
-            <div class="card-body py-2">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <label class="form-label mb-0 small fw-bold">
-                        <i class="ti ti-file-type-pdf me-1"></i>Wzór z PDF:
-                    </label>
-                    <input type="file" class="form-control form-control-sm" accept=".pdf,application/pdf"
-                           data-szablon-editor-target="pdfFile"
-                           data-action="change->szablon-editor#loadPdfBackground"
-                           style="max-width: 280px;">
-
-                    <div class="d-none d-flex align-items-center gap-2" data-szablon-editor-target="bgControls">
-                        <label class="form-label mb-0 small">Przezroczystość:</label>
-                        <input type="range" class="form-range" min="5" max="100" value="30"
-                               data-szablon-editor-target="bgOpacity"
-                               data-action="input->szablon-editor#updateBgOpacity"
-                               style="width: 120px;">
-                        <span class="small text-muted" data-szablon-editor-target="bgOpacityValue">30%</span>
-                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
-                            <i class="ti ti-x"></i>
-                        </button>
-                    </div>
-                </div>
-                <small class="form-hint">Wczytaj PDF jako podkład — zaprojektuj szablon na jego podstawie. Tło nie jest zapisywane.</small>
-            </div>
-        </div>
-
-        {# ── Canvas + Properties panel ── #}
-        <div class="row mb-3">
-            <div class="col">
-                <div style="background: #e9ecef; padding: 20px; border-radius: 4px; overflow: auto; display: flex; justify-content: center;">
-                    <div style="box-shadow: 0 2px 12px rgba(0,0,0,0.15);">
-                        <canvas data-szablon-editor-target="canvas"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-auto" style="width: 220px;">
-                <div class="card d-none" data-szablon-editor-target="propPanel">
-                    <div class="card-header py-2">
-                        <h4 class="card-title mb-0">Właściwości</h4>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Rozmiar czcionki</label>
-                            <input type="number" class="form-control form-control-sm" min="6" max="200"
+                        {# Rozmiar czcionki #}
+                        <div class="input-group input-group-sm" style="width: 80px;">
+                            <input type="number" class="form-control form-control-sm text-center" min="4" max="200" value="12"
                                    data-szablon-editor-target="fontSize"
-                                   data-action="change->szablon-editor#updateFontSize">
+                                   data-action="change->szablon-editor#updateFontSize keydown->szablon-editor#preventSubmit"
+                                   title="Rozmiar czcionki (pt)">
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Kolor</label>
-                            <input type="color" class="form-control form-control-sm form-control-color"
-                                   data-szablon-editor-target="fontColor"
-                                   data-action="change->szablon-editor#updateFontColor"
-                                   value="#000000">
+
+                        {# Kolor fontu #}
+                        <input type="color" class="form-control form-control-sm form-control-color p-0 border-0"
+                               data-szablon-editor-target="fontColor"
+                               data-action="input->szablon-editor#updateFontColor"
+                               value="#000000" title="Kolor tekstu" style="width:28px;height:28px;">
+
+                        {# Kolor tła elementu #}
+                        <input type="color" class="form-control form-control-sm form-control-color p-0 border-0"
+                               data-szablon-editor-target="fillColor"
+                               data-action="input->szablon-editor#updateFillColor"
+                               value="#ffffff" title="Kolor tła elementu" style="width:28px;height:28px;">
+
+                        <div class="vr"></div>
+
+                        {# Wyrównanie #}
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignLeft" title="Do lewej">
+                                <i class="ti ti-align-left"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignCenter" title="Wyśrodkuj">
+                                <i class="ti ti-align-center"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="szablon-editor#alignRight" title="Do prawej">
+                                <i class="ti ti-align-right"></i>
+                            </button>
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Pozycja X</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   data-szablon-editor-target="propX"
-                                   data-action="change->szablon-editor#updatePropX">
+
+                        <div class="vr"></div>
+
+                        {# Obrót #}
+                        <div class="input-group input-group-sm" style="width: 80px;">
+                            <input type="number" class="form-control form-control-sm text-center" min="-360" max="360" value="0"
+                                   data-szablon-editor-target="rotation"
+                                   data-action="change->szablon-editor#updateRotation keydown->szablon-editor#preventSubmit"
+                                   title="Obrót (stopnie)">
+                            <span class="input-group-text px-1" style="font-size:0.7rem;">°</span>
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Pozycja Y</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   data-szablon-editor-target="propY"
-                                   data-action="change->szablon-editor#updatePropY">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Szerokość</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   data-szablon-editor-target="propW" readonly>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label mb-0 small">Wysokość</label>
-                            <input type="number" class="form-control form-control-sm"
-                                   data-szablon-editor-target="propH" readonly>
+
+                        <div class="vr"></div>
+
+                        {# Usuń #}
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#deleteSelected" title="Usuń zaznaczone (Delete)">
+                            <i class="ti ti-trash"></i>
+                        </button>
+
+                        <div class="ms-auto"></div>
+
+                        {# Podgląd PDF #}
+                        <button type="button" class="btn btn-sm btn-outline-info" data-action="szablon-editor#previewPdf" title="Podgląd PDF">
+                            <i class="ti ti-file-type-pdf"></i>
+                        </button>
+
+                        {# Fullscreen #}
+                        <button type="button" class="btn btn-sm btn-outline-dark" data-action="szablon-editor#toggleFullscreen" title="Pełny ekran">
+                            <i class="ti ti-maximize"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Wzór z PDF ── #}
+            <div class="card mb-2">
+                <div class="card-body py-1 px-3">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <label class="form-label mb-0 small fw-bold">
+                            <i class="ti ti-file-type-pdf me-1"></i>Wzór PDF:
+                        </label>
+                        <input type="file" class="form-control form-control-sm" accept=".pdf,application/pdf"
+                               data-szablon-editor-target="pdfFile"
+                               data-action="change->szablon-editor#loadPdfBackground"
+                               style="max-width: 250px;">
+
+                        <div class="d-none d-flex align-items-center gap-2" data-szablon-editor-target="bgControls">
+                            <input type="range" class="form-range" min="5" max="100" value="30"
+                                   data-szablon-editor-target="bgOpacity"
+                                   data-action="input->szablon-editor#updateBgOpacity"
+                                   style="width: 100px;">
+                            <span class="small text-muted" style="min-width:32px" data-szablon-editor-target="bgOpacityValue">30%</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
+                                <i class="ti ti-x"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {# ── Kanwa + Panel właściwości ── #}
+            <div class="d-flex gap-3 mb-3">
+                {# Kanwa #}
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div style="background:#e9ecef; padding:16px; border-radius:4px; overflow:auto; display:flex; justify-content:center;">
+                        <div style="box-shadow:0 2px 12px rgba(0,0,0,0.15);">
+                            <canvas data-szablon-editor-target="canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                {# Panel właściwości — widoczny gdy coś zaznaczone #}
+                <div style="width:180px; flex-shrink:0;">
+                    <div class="card d-none" data-szablon-editor-target="propPanel">
+                        <div class="card-header py-1 px-2">
+                            <h4 class="card-title mb-0 small fw-bold">Właściwości</h4>
+                        </div>
+                        <div class="card-body py-2 px-2">
+                            <div class="row g-1 mb-1">
+                                <div class="col-6">
+                                    <label class="form-label mb-0" style="font-size:0.65rem;">X</label>
+                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                           data-szablon-editor-target="propX"
+                                           data-action="change->szablon-editor#updatePropX keydown->szablon-editor#preventSubmit">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label mb-0" style="font-size:0.65rem;">Y</label>
+                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                           data-szablon-editor-target="propY"
+                                           data-action="change->szablon-editor#updatePropY keydown->szablon-editor#preventSubmit">
+                                </div>
+                            </div>
+                            <div class="row g-1 mb-1">
+                                <div class="col-6">
+                                    <label class="form-label mb-0" style="font-size:0.65rem;">Szer.</label>
+                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                           data-szablon-editor-target="propW"
+                                           data-action="change->szablon-editor#updatePropW keydown->szablon-editor#preventSubmit">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label mb-0" style="font-size:0.65rem;">Wys.</label>
+                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                           data-szablon-editor-target="propH"
+                                           data-action="change->szablon-editor#updatePropH keydown->szablon-editor#preventSubmit">
+                                </div>
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label mb-0" style="font-size:0.65rem;">Obrót</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control form-control-sm" style="font-size:0.75rem;"
+                                           data-szablon-editor-target="propAngle"
+                                           data-action="change->szablon-editor#updatePropAngle keydown->szablon-editor#preventSubmit">
+                                    <span class="input-group-text px-1" style="font-size:0.65rem;">°</span>
+                                </div>
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label mb-0" style="font-size:0.65rem;">Przezroczystość</label>
+                                <input type="range" class="form-range" min="0" max="100" value="100"
+                                       data-szablon-editor-target="propOpacity"
+                                       data-action="input->szablon-editor#updatePropOpacity"
+                                       style="height:20px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>{# /fullscreenContainer #}
     </div>
 
-    {# ── Hidden inputs (managed by Stimulus) ── #}
+    {# ── Hidden inputs ── #}
     <input type="hidden" name="tresc_html" data-szablon-editor-target="trescHtml"
            value="{{ szablon is defined and szablon ? szablon.trescHtml|e('html_attr') : '' }}">
     <input type="hidden" name="canvas_json" data-szablon-editor-target="canvasJson"
            value="{{ canvasJson|e('html_attr') }}">
 
-    {# ── Pola formularza (unchanged) ── #}
+    {# ── Pola formularza ── #}
     <div class="mb-3">
         <label class="form-label">Pola formularza</label>
         <div class="d-flex flex-wrap gap-3">
@@ -287,10 +315,9 @@
                 </label>
             {% endfor %}
         </div>
-        <small class="form-hint">Zaznacz pola, które będą widoczne w formularzu składania podania.</small>
     </div>
 
-    {# ── Aktywny (unchanged) ── #}
+    {# ── Aktywny ── #}
     <div class="mb-3">
         <label class="form-check">
             <input class="form-check-input" type="checkbox" name="aktywny" value="1"

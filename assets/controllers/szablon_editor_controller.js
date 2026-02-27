@@ -17,25 +17,11 @@ export default class extends Controller {
     };
 
     static targets = [
-        'canvas',
-        'trescHtml',
-        'canvasJson',
-        'toolbar',
-        'propPanel',
-        'fontSize',
-        'fontColor',
-        'propX',
-        'propY',
-        'propW',
-        'propH',
-        'placeholderSelect',
-        'legacyMode',
-        'canvasMode',
-        'legacyTextarea',
-        'pdfFile',
-        'bgOpacity',
-        'bgOpacityValue',
-        'bgControls',
+        'canvas', 'trescHtml', 'canvasJson', 'toolbar',
+        'placeholderSelect', 'fontSize', 'fontColor', 'fillColor', 'rotation',
+        'propPanel', 'propX', 'propY', 'propW', 'propH', 'propAngle', 'propOpacity',
+        'legacyMode', 'canvasMode', 'legacyTextarea',
+        'pdfFile', 'bgOpacity', 'bgOpacityValue', 'bgControls',
         'fullscreenContainer',
     ];
 
@@ -49,7 +35,6 @@ export default class extends Controller {
             this._bindKeyboard();
         }
 
-        // Przy submicie formularza — synchronizuj textarea → hidden input w trybie legacy
         const form = this.element.closest('form');
         if (form) {
             form.addEventListener('submit', () => {
@@ -61,33 +46,21 @@ export default class extends Controller {
     }
 
     disconnect() {
-        if (this._fc) {
-            this._fc.dispose();
-        }
+        if (this._fc) this._fc.dispose();
     }
 
     // ── Canvas init ──────────────────────────────────────────────
 
     _initCanvas() {
         this._fc = new fabric.Canvas(this.canvasTarget, {
-            width: CANVAS_W,
-            height: CANVAS_H,
-            backgroundColor: '#ffffff',
-            selection: true,
+            width: CANVAS_W, height: CANVAS_H,
+            backgroundColor: '#ffffff', selection: true,
         });
 
-        // Page border (visual only, not exported)
         const border = new fabric.Rect({
-            left: 0,
-            top: 0,
-            width: CANVAS_W,
-            height: CANVAS_H,
-            fill: 'transparent',
-            stroke: '#dee2e6',
-            strokeWidth: 1,
-            selectable: false,
-            evented: false,
-            excludeFromExport: false,
+            left: 0, top: 0, width: CANVAS_W, height: CANVAS_H,
+            fill: 'transparent', stroke: '#dee2e6', strokeWidth: 1,
+            selectable: false, evented: false,
         });
         border._isPageBorder = true;
         this._fc.add(border);
@@ -96,34 +69,27 @@ export default class extends Controller {
 
     _loadState() {
         const json = this.canvasJsonValue;
-        if (json) {
-            try {
-                const parsed = JSON.parse(json);
-                this._fc.loadFromJSON(parsed).then(() => {
-                    // Re-tag page border
-                    this._fc.getObjects().forEach(obj => {
-                        if (obj.type === 'rect' && obj.width === CANVAS_W && obj.height === CANVAS_H && obj.left === 0 && obj.top === 0) {
-                            obj._isPageBorder = true;
-                            obj.selectable = false;
-                            obj.evented = false;
-                        }
-                    });
-                    this._fc.renderAll();
+        if (!json) return;
+        try {
+            this._fc.loadFromJSON(JSON.parse(json)).then(() => {
+                this._fc.getObjects().forEach(obj => {
+                    if (obj.type === 'rect' && obj.width === CANVAS_W && obj.height === CANVAS_H && obj.left === 0 && obj.top === 0) {
+                        obj._isPageBorder = true;
+                        obj.selectable = false;
+                        obj.evented = false;
+                    }
                 });
-            } catch (e) {
-                console.warn('Failed to load canvas JSON:', e);
-            }
-        }
+                this._fc.renderAll();
+            });
+        } catch (e) { console.warn('Failed to load canvas JSON:', e); }
     }
 
     _bindCanvasEvents() {
-        const events = ['object:modified', 'object:added', 'object:removed', 'text:changed'];
-        events.forEach(evt => {
+        ['object:modified', 'object:added', 'object:removed', 'text:changed'].forEach(evt => {
             this._fc.on(evt, () => this._syncState());
         });
-
-        this._fc.on('selection:created', (e) => this._onSelect(e));
-        this._fc.on('selection:updated', (e) => this._onSelect(e));
+        this._fc.on('selection:created', () => this._onSelect());
+        this._fc.on('selection:updated', () => this._onSelect());
         this._fc.on('selection:cleared', () => this._onDeselect());
     }
 
@@ -131,71 +97,69 @@ export default class extends Controller {
         document.addEventListener('keydown', (e) => {
             if (!this._fc) return;
             const tag = e.target.tagName;
-            // Don't intercept when typing in inputs
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                // Don't delete if editing text
                 const active = this._fc.getActiveObject();
                 if (active && active.isEditing) return;
                 e.preventDefault();
                 this.deleteSelected();
             }
-            if (e.ctrlKey && e.key === 'b') {
-                e.preventDefault();
-                this.toggleBold();
-            }
-            if (e.ctrlKey && e.key === 'i') {
-                e.preventDefault();
-                this.toggleItalic();
-            }
+            if (e.ctrlKey && e.key === 'b') { e.preventDefault(); this.toggleBold(); }
+            if (e.ctrlKey && e.key === 'i') { e.preventDefault(); this.toggleItalic(); }
         });
+    }
+
+    // ── Prevent Enter from submitting form ───────────────────────
+
+    preventSubmit(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
+        }
     }
 
     // ── Selection / Property panel ───────────────────────────────
 
-    _onSelect(e) {
+    _onSelect() {
         const obj = this._fc.getActiveObject();
         if (!obj) return;
         this._showProps(obj);
     }
 
     _onDeselect() {
-        if (this.hasPropPanelTarget) {
-            this.propPanelTarget.classList.add('d-none');
-        }
+        if (this.hasPropPanelTarget) this.propPanelTarget.classList.add('d-none');
     }
 
     _showProps(obj) {
         if (!this.hasPropPanelTarget) return;
         this.propPanelTarget.classList.remove('d-none');
 
-        if (this.hasFontSizeTarget && obj.fontSize !== undefined) {
-            this.fontSizeTarget.value = Math.round(obj.fontSize);
+        const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+
+        if (this.hasFontSizeTarget && obj.fontSize !== undefined) this.fontSizeTarget.value = Math.round(obj.fontSize);
+        if (this.hasFontColorTarget) this.fontColorTarget.value = obj.fill || '#000000';
+        if (this.hasFillColorTarget) {
+            this.fillColorTarget.value = (obj.type === 'rect' && obj.fill && obj.fill !== 'transparent') ? obj.fill : '#ffffff';
         }
-        if (this.hasFontColorTarget && obj.fill !== undefined) {
-            this.fontColorTarget.value = obj.fill || '#000000';
-        }
+        if (this.hasRotationTarget) this.rotationTarget.value = Math.round(obj.angle || 0);
         if (this.hasPropXTarget) this.propXTarget.value = Math.round(obj.left || 0);
         if (this.hasPropYTarget) this.propYTarget.value = Math.round(obj.top || 0);
-        if (this.hasPropWTarget) this.propWTarget.value = Math.round((obj.width || 0) * (obj.scaleX || 1));
-        if (this.hasPropHTarget) this.propHTarget.value = Math.round((obj.height || 0) * (obj.scaleY || 1));
+        if (this.hasPropWTarget) this.propWTarget.value = Math.round((obj.width || 0) * sx);
+        if (this.hasPropHTarget) this.propHTarget.value = Math.round((obj.height || 0) * sy);
+        if (this.hasPropAngleTarget) this.propAngleTarget.value = Math.round(obj.angle || 0);
+        if (this.hasPropOpacityTarget) this.propOpacityTarget.value = Math.round((obj.opacity ?? 1) * 100);
     }
 
-    // ── Toolbar actions ──────────────────────────────────────────
+    // ── Toolbar actions: Add objects ─────────────────────────────
 
     addText() {
-        const text = new fabric.Textbox('Wpisz tekst...', {
-            left: 50,
-            top: 50,
-            width: 300,
-            fontSize: 12,
-            fontFamily: 'DejaVu Sans',
-            fill: '#000000',
-            editable: true,
+        const t = new fabric.Textbox('Wpisz tekst...', {
+            left: 50, top: 50, width: 300, fontSize: 12,
+            fontFamily: 'DejaVu Sans', fill: '#000000', editable: true,
         });
-        this._fc.add(text);
-        this._fc.setActiveObject(text);
+        this._fc.add(t);
+        this._fc.setActiveObject(t);
         this._fc.renderAll();
     }
 
@@ -203,73 +167,55 @@ export default class extends Controller {
         if (!this.hasPlaceholderSelectTarget) return;
         const val = this.placeholderSelectTarget.value;
         if (!val) return;
-
-        const text = new fabric.Textbox(val, {
-            left: 50,
-            top: 50,
-            width: 350,
-            fontSize: 12,
-            fontFamily: 'DejaVu Sans',
-            fill: '#1971c2',
-            editable: true,
+        const t = new fabric.Textbox(val, {
+            left: 50, top: 50, width: 350, fontSize: 12,
+            fontFamily: 'DejaVu Sans', fill: '#1971c2', editable: true,
         });
-        text.isPlaceholder = true;
-        this._fc.add(text);
-        this._fc.setActiveObject(text);
+        t.isPlaceholder = true;
+        this._fc.add(t);
+        this._fc.setActiveObject(t);
         this._fc.renderAll();
     }
 
     addLine() {
-        const line = new fabric.Line([50, 200, 550, 200], {
-            stroke: '#000000',
-            strokeWidth: 1,
-        });
-        this._fc.add(line);
-        this._fc.setActiveObject(line);
+        const l = new fabric.Line([50, 200, 550, 200], { stroke: '#000000', strokeWidth: 1 });
+        this._fc.add(l);
+        this._fc.setActiveObject(l);
         this._fc.renderAll();
     }
 
     addRect() {
-        const rect = new fabric.Rect({
-            left: 50,
-            top: 50,
-            width: 200,
-            height: 100,
-            fill: 'transparent',
-            stroke: '#000000',
-            strokeWidth: 1,
+        const r = new fabric.Rect({
+            left: 50, top: 50, width: 200, height: 100,
+            fill: 'transparent', stroke: '#000000', strokeWidth: 1,
         });
-        this._fc.add(rect);
-        this._fc.setActiveObject(rect);
+        this._fc.add(r);
+        this._fc.setActiveObject(r);
         this._fc.renderAll();
     }
 
     deleteSelected() {
         const active = this._fc.getActiveObjects();
         if (!active.length) return;
-        active.forEach(obj => {
-            if (!obj._isPageBorder) {
-                this._fc.remove(obj);
-            }
-        });
+        active.forEach(obj => { if (!obj._isPageBorder) this._fc.remove(obj); });
         this._fc.discardActiveObject();
         this._fc.renderAll();
     }
+
+    // ── Toolbar actions: Formatting ──────────────────────────────
 
     toggleBold() {
         const obj = this._fc.getActiveObject();
         if (!obj || obj.type !== 'textbox') return;
         obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
-        this._fc.renderAll();
-        this._syncState();
+        this._fc.renderAll(); this._syncState();
     }
 
     toggleItalic() {
         const obj = this._fc.getActiveObject();
         if (!obj || obj.type !== 'textbox') return;
         obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
-        this._fc.renderAll();
-        this._syncState();
+        this._fc.renderAll(); this._syncState();
     }
 
     updateFontSize() {
@@ -278,8 +224,7 @@ export default class extends Controller {
         const size = parseInt(this.fontSizeTarget.value, 10);
         if (size > 0 && size <= 200) {
             obj.set('fontSize', size);
-            this._fc.renderAll();
-            this._syncState();
+            this._fc.renderAll(); this._syncState();
         }
     }
 
@@ -287,58 +232,93 @@ export default class extends Controller {
         const obj = this._fc.getActiveObject();
         if (!obj) return;
         const color = this.fontColorTarget.value;
-        if (obj.type === 'textbox') {
-            obj.set('fill', color);
-        } else if (obj.type === 'line' || obj.type === 'rect') {
-            obj.set('stroke', color);
+        if (obj.type === 'textbox') obj.set('fill', color);
+        else obj.set('stroke', color);
+        this._fc.renderAll(); this._syncState();
+    }
+
+    updateFillColor() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        const color = this.fillColorTarget.value;
+        if (obj.type === 'rect') {
+            obj.set('fill', color === '#ffffff' ? 'transparent' : color);
+        } else if (obj.type === 'textbox') {
+            obj.set('backgroundColor', color === '#ffffff' ? '' : color);
         }
-        this._fc.renderAll();
-        this._syncState();
+        this._fc.renderAll(); this._syncState();
     }
 
-    updatePropX() {
+    updateRotation() {
         const obj = this._fc.getActiveObject();
         if (!obj) return;
-        obj.set('left', parseInt(this.propXTarget.value, 10) || 0);
+        obj.set('angle', parseFloat(this.rotationTarget.value) || 0);
         obj.setCoords();
-        this._fc.renderAll();
-        this._syncState();
-    }
-
-    updatePropY() {
-        const obj = this._fc.getActiveObject();
-        if (!obj) return;
-        obj.set('top', parseInt(this.propYTarget.value, 10) || 0);
-        obj.setCoords();
-        this._fc.renderAll();
-        this._syncState();
+        this._fc.renderAll(); this._syncState();
     }
 
     alignLeft() {
         const obj = this._fc.getActiveObject();
         if (!obj || obj.type !== 'textbox') return;
-        obj.set('textAlign', 'left');
-        this._fc.renderAll();
-        this._syncState();
+        obj.set('textAlign', 'left'); this._fc.renderAll(); this._syncState();
     }
-
     alignCenter() {
         const obj = this._fc.getActiveObject();
         if (!obj || obj.type !== 'textbox') return;
-        obj.set('textAlign', 'center');
-        this._fc.renderAll();
-        this._syncState();
+        obj.set('textAlign', 'center'); this._fc.renderAll(); this._syncState();
     }
-
     alignRight() {
         const obj = this._fc.getActiveObject();
         if (!obj || obj.type !== 'textbox') return;
-        obj.set('textAlign', 'right');
-        this._fc.renderAll();
-        this._syncState();
+        obj.set('textAlign', 'right'); this._fc.renderAll(); this._syncState();
     }
 
-    // ── Tryb legacy / canvas ────────────────────────────────────
+    // ── Property panel actions ───────────────────────────────────
+
+    updatePropX() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        obj.set('left', parseInt(this.propXTarget.value, 10) || 0);
+        obj.setCoords(); this._fc.renderAll(); this._syncState();
+    }
+    updatePropY() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        obj.set('top', parseInt(this.propYTarget.value, 10) || 0);
+        obj.setCoords(); this._fc.renderAll(); this._syncState();
+    }
+    updatePropW() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        const w = parseInt(this.propWTarget.value, 10);
+        if (w > 0) {
+            obj.set('width', w / (obj.scaleX || 1));
+            obj.setCoords(); this._fc.renderAll(); this._syncState();
+        }
+    }
+    updatePropH() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        const h = parseInt(this.propHTarget.value, 10);
+        if (h > 0) {
+            obj.set('height', h / (obj.scaleY || 1));
+            obj.setCoords(); this._fc.renderAll(); this._syncState();
+        }
+    }
+    updatePropAngle() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        obj.set('angle', parseFloat(this.propAngleTarget.value) || 0);
+        obj.setCoords(); this._fc.renderAll(); this._syncState();
+    }
+    updatePropOpacity() {
+        const obj = this._fc.getActiveObject();
+        if (!obj) return;
+        obj.set('opacity', parseInt(this.propOpacityTarget.value, 10) / 100);
+        this._fc.renderAll(); this._syncState();
+    }
+
+    // ── Legacy / Canvas mode switching ───────────────────────────
 
     switchToCanvas() {
         if (!this._fc) {
@@ -346,12 +326,8 @@ export default class extends Controller {
             this._bindCanvasEvents();
             this._bindKeyboard();
         }
-
-        // Synchronizuj textarea → hidden input
-        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget)
             this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
-        }
-
         this._isLegacyMode = false;
         if (this.hasLegacyModeTarget) this.legacyModeTarget.classList.add('d-none');
         if (this.hasCanvasModeTarget) this.canvasModeTarget.classList.remove('d-none');
@@ -359,17 +335,9 @@ export default class extends Controller {
 
     switchToLegacy() {
         this._isLegacyMode = true;
-
-        // Synchronizuj hidden input → textarea
-        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
+        if (this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget)
             this.legacyTextareaTarget.value = this.trescHtmlTarget.value;
-        }
-
-        // Wyczyść canvas_json żeby zapis nie nadpisał trybu
-        if (this.hasCanvasJsonTarget) {
-            this.canvasJsonTarget.value = '';
-        }
-
+        if (this.hasCanvasJsonTarget) this.canvasJsonTarget.value = '';
         if (this.hasCanvasModeTarget) this.canvasModeTarget.classList.add('d-none');
         if (this.hasLegacyModeTarget) this.legacyModeTarget.classList.remove('d-none');
     }
@@ -378,47 +346,34 @@ export default class extends Controller {
         const ph = e.currentTarget.dataset.placeholder;
         if (!this.hasLegacyTextareaTarget || !ph) return;
         const ta = this.legacyTextareaTarget;
-        const start = ta.selectionStart;
-        const end = ta.selectionEnd;
+        const start = ta.selectionStart, end = ta.selectionEnd;
         ta.value = ta.value.substring(0, start) + ph + ta.value.substring(end);
         ta.selectionStart = ta.selectionEnd = start + ph.length;
         ta.focus();
     }
 
+    // ── HTML Import ──────────────────────────────────────────────
+
     importHtml() {
         if (!this.hasTrescHtmlTarget) return;
         const html = this.trescHtmlTarget.value;
-        if (!html.trim()) {
-            alert('Brak treści HTML do zaimportowania.');
-            return;
-        }
+        if (!html.trim()) { alert('Brak treści HTML do zaimportowania.'); return; }
 
-        // Potwierdź jeśli kanwa ma obiekty
         const existing = this._fc.getObjects().filter(o => !o._isPageBorder);
         if (existing.length > 0) {
-            if (!confirm('Kanwa zawiera obiekty. Import zastąpi je elementami z HTML. Kontynuować?')) {
-                return;
-            }
+            if (!confirm('Kanwa zawiera obiekty. Import zastąpi je. Kontynuować?')) return;
             existing.forEach(obj => this._fc.remove(obj));
         }
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        const doc = new DOMParser().parseFromString(html, 'text/html');
         const divs = doc.querySelectorAll('div[style*="position:absolute"], div[style*="position: absolute"]');
-
         let imported = 0;
         divs.forEach(div => {
-            const style = div.getAttribute('style') || '';
-            const obj = this._parseHtmlDiv(div, style);
-            if (obj) {
-                this._fc.add(obj);
-                imported++;
-            }
+            const obj = this._parseHtmlDiv(div, div.getAttribute('style') || '');
+            if (obj) { this._fc.add(obj); imported++; }
         });
-
-        this._fc.renderAll();
-        this._syncState();
-        alert(`Zaimportowano ${imported} elementów na kanwę.`);
+        this._fc.renderAll(); this._syncState();
+        alert(`Zaimportowano ${imported} elementów.`);
     }
 
     _parseHtmlDiv(div, style) {
@@ -427,126 +382,61 @@ export default class extends Controller {
         const width = this._parsePt(style, /(?<!border-)width:\s*([\d.]+)pt/) * PT_TO_PX;
         const height = this._parsePt(style, /(?<!border-)height:\s*([\d.]+)pt/) * PT_TO_PX;
 
-        // Linia — ma border-bottom ale nie ma height
         const borderBottomMatch = style.match(/border-bottom:\s*([\d.]+)pt\s+solid\s+([^;"]+)/);
         if (borderBottomMatch && !height) {
-            const strokeWidth = parseFloat(borderBottomMatch[1]) * PT_TO_PX;
-            const strokeColor = borderBottomMatch[2].trim();
             return new fabric.Line([0, 0, width || 200, 0], {
-                left: left,
-                top: top,
-                stroke: strokeColor,
-                strokeWidth: Math.max(1, strokeWidth),
+                left, top, stroke: borderBottomMatch[2].trim(),
+                strokeWidth: Math.max(1, parseFloat(borderBottomMatch[1]) * PT_TO_PX),
             });
         }
 
-        // Prostokąt — ma border i height
         const borderMatch = style.match(/border:\s*([\d.]+)pt\s+solid\s+([^;"]+)/);
         if (borderMatch && height) {
-            const strokeWidth = parseFloat(borderMatch[1]) * PT_TO_PX;
-            const strokeColor = borderMatch[2].trim();
             const bgMatch = style.match(/background:\s*([^;"]+)/);
-            const fill = bgMatch ? bgMatch[1].trim() : 'transparent';
             return new fabric.Rect({
-                left: left,
-                top: top,
-                width: width || 100,
-                height: height,
-                fill: fill,
-                stroke: strokeColor,
-                strokeWidth: Math.max(1, strokeWidth),
+                left, top, width: width || 100, height,
+                fill: bgMatch ? bgMatch[1].trim() : 'transparent',
+                stroke: borderMatch[2].trim(),
+                strokeWidth: Math.max(1, parseFloat(borderMatch[1]) * PT_TO_PX),
             });
         }
 
-        // Tekst — domyślnie
         const fontSize = this._parsePt(style, /font-size:\s*([\d.]+)pt/) * PT_TO_PX || 12;
         const isBold = /font-weight:\s*bold/.test(style);
         const isItalic = /font-style:\s*italic/.test(style);
         const alignMatch = style.match(/text-align:\s*(center|right|left)/);
-        const textAlign = alignMatch ? alignMatch[1] : 'left';
         const colorMatch = style.match(/(?<!ground-)color:\s*([^;"]+)/);
         const fill = colorMatch ? colorMatch[1].trim() : '#000000';
 
-        // Tekst z innerHTML — zamień <br> na \n, usuń tagi
-        let text = div.innerHTML
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#039;/g, "'");
-
+        let text = div.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&#039;/g, "'");
         if (!text.trim()) return null;
 
         const isPlaceholder = /\[\[.+\]\]/.test(text);
-
         const textbox = new fabric.Textbox(text, {
-            left: left,
-            top: top,
-            width: width || 300,
-            fontSize: fontSize,
-            fontFamily: 'DejaVu Sans',
-            fill: fill,
+            left, top, width: width || 300, fontSize,
+            fontFamily: 'DejaVu Sans', fill,
             fontWeight: isBold ? 'bold' : 'normal',
             fontStyle: isItalic ? 'italic' : 'normal',
-            textAlign: textAlign,
-            editable: true,
+            textAlign: alignMatch ? alignMatch[1] : 'left', editable: true,
         });
-
         if (isPlaceholder) {
             textbox.isPlaceholder = true;
             if (fill === '#000000') textbox.set('fill', '#1971c2');
         }
-
         return textbox;
     }
 
-    _parsePt(style, regex) {
-        const m = style.match(regex);
-        return m ? parseFloat(m[1]) : 0;
-    }
-
-    previewPdf() {
-        // W trybie legacy — synchronizuj textarea → hidden input
-        if (this._isLegacyMode && this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget) {
-            this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
-        }
-
-        const html = this.trescHtmlTarget.value;
-        if (!html.trim()) {
-            alert('Treść HTML jest pusta.');
-            return;
-        }
-
-        const url = this.szablonIdValue
-            ? this.previewUrlValue
-            : this.previewNewUrlValue;
-
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = url;
-        form.target = '_blank';
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'tresc_html';
-        input.value = html;
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-        form.remove();
-    }
+    _parsePt(style, regex) { const m = style.match(regex); return m ? parseFloat(m[1]) : 0; }
 
     // ── Fullscreen ───────────────────────────────────────────────
 
     toggleFullscreen() {
         if (!this.hasFullscreenContainerTarget) return;
         const container = this.fullscreenContainerTarget;
-
         if (!document.fullscreenElement) {
-            container.requestFullscreen().then(() => {
-                this._applyFullscreenStyle();
-            });
+            container.requestFullscreen().then(() => this._applyFullscreenStyle());
         } else {
             document.exitFullscreen();
         }
@@ -554,27 +444,14 @@ export default class extends Controller {
 
     _applyFullscreenStyle() {
         const container = this.fullscreenContainerTarget;
-
         const onFsChange = () => {
             if (document.fullscreenElement === container) {
-                // Wejście w fullscreen
-                container.style.background = '#e9ecef';
-                container.style.overflow = 'auto';
-                container.style.display = 'flex';
-                container.style.flexDirection = 'column';
-
-                // Skaluj kanwę żeby mieściła się na ekranie
+                container.style.cssText = 'background:#e9ecef; overflow:auto; display:flex; flex-direction:column;';
                 this._scaleCanvasToFit();
                 this._fsResizeHandler = () => this._scaleCanvasToFit();
                 window.addEventListener('resize', this._fsResizeHandler);
             } else {
-                // Wyjście z fullscreen
-                container.style.background = '';
-                container.style.overflow = '';
-                container.style.display = '';
-                container.style.flexDirection = '';
-
-                // Przywróć skalę kanwy
+                container.style.cssText = '';
                 this._resetCanvasScale();
                 if (this._fsResizeHandler) {
                     window.removeEventListener('resize', this._fsResizeHandler);
@@ -589,14 +466,9 @@ export default class extends Controller {
     _scaleCanvasToFit() {
         if (!this._fc) return;
         const container = this.fullscreenContainerTarget;
-        // Wysokość dostępna = ekran minus toolbar (~120px zapasu)
         const availH = container.clientHeight - 160;
         const availW = container.clientWidth - 60;
-
-        const scaleH = availH / CANVAS_H;
-        const scaleW = availW / CANVAS_W;
-        const scale = Math.min(scaleH, scaleW, 1); // nie powiększaj ponad 1
-
+        const scale = Math.min(availH / CANVAS_H, availW / CANVAS_W, 1);
         const wrapper = this.canvasTarget.parentElement.parentElement;
         wrapper.style.transform = `scale(${scale})`;
         wrapper.style.transformOrigin = 'top center';
@@ -608,72 +480,44 @@ export default class extends Controller {
         wrapper.style.transformOrigin = '';
     }
 
-    // ── PDF background (wzór) ────────────────────────────────────
+    // ── PDF background ───────────────────────────────────────────
 
     async loadPdfBackground() {
         if (!this.hasPdfFileTarget) return;
         const file = this.pdfFileTarget.files[0];
         if (!file) return;
-
-        // Lazy-load PDF.js z CDN
         const pdfjsLib = await this._loadPdfJs();
-
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
             const page = await pdf.getPage(1);
-
-            // Skaluj stronę PDF do wymiarów kanwy A4
-            const unscaledViewport = page.getViewport({ scale: 1 });
-            const scale = CANVAS_W / unscaledViewport.width;
+            const scale = CANVAS_W / page.getViewport({ scale: 1 }).width;
             const viewport = page.getViewport({ scale });
 
             const tmpCanvas = document.createElement('canvas');
-            tmpCanvas.width = CANVAS_W;
-            tmpCanvas.height = CANVAS_H;
+            tmpCanvas.width = CANVAS_W; tmpCanvas.height = CANVAS_H;
             const ctx = tmpCanvas.getContext('2d');
-
-            // Białe tło
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const dataUrl = tmpCanvas.toDataURL('image/png');
-            await this._setPdfBackground(dataUrl);
+            const opacity = this.hasBgOpacityTarget ? parseInt(this.bgOpacityTarget.value, 10) / 100 : 0.3;
+            const img = await fabric.FabricImage.fromURL(tmpCanvas.toDataURL('image/png'));
+            img.set({ scaleX: CANVAS_W / img.width, scaleY: CANVAS_H / img.height, opacity });
+            this._fc.backgroundImage = img;
+            this._fc.renderAll();
 
-            // Pokaż kontrolki tła
-            if (this.hasBgControlsTarget) {
-                this.bgControlsTarget.classList.remove('d-none');
-            }
+            if (this.hasBgControlsTarget) this.bgControlsTarget.classList.remove('d-none');
         } catch (err) {
             console.error('PDF load error:', err);
-            alert('Nie udało się wczytać pliku PDF: ' + err.message);
+            alert('Nie udało się wczytać PDF: ' + err.message);
         }
-    }
-
-    async _setPdfBackground(dataUrl) {
-        const opacity = this.hasBgOpacityTarget
-            ? parseInt(this.bgOpacityTarget.value, 10) / 100
-            : 0.3;
-
-        const img = await fabric.FabricImage.fromURL(dataUrl);
-        img.set({
-            scaleX: CANVAS_W / img.width,
-            scaleY: CANVAS_H / img.height,
-            opacity: opacity,
-        });
-        this._fc.backgroundImage = img;
-        this._fc.renderAll();
     }
 
     updateBgOpacity() {
         if (!this._fc || !this._fc.backgroundImage) return;
         const opacity = parseInt(this.bgOpacityTarget.value, 10) / 100;
         this._fc.backgroundImage.set('opacity', opacity);
-        if (this.hasBgOpacityValueTarget) {
-            this.bgOpacityValueTarget.textContent = this.bgOpacityTarget.value + '%';
-        }
+        if (this.hasBgOpacityValueTarget) this.bgOpacityValueTarget.textContent = this.bgOpacityTarget.value + '%';
         this._fc.renderAll();
     }
 
@@ -681,20 +525,13 @@ export default class extends Controller {
         if (!this._fc) return;
         this._fc.backgroundImage = null;
         this._fc.renderAll();
-        if (this.hasBgControlsTarget) {
-            this.bgControlsTarget.classList.add('d-none');
-        }
-        if (this.hasPdfFileTarget) {
-            this.pdfFileTarget.value = '';
-        }
+        if (this.hasBgControlsTarget) this.bgControlsTarget.classList.add('d-none');
+        if (this.hasPdfFileTarget) this.pdfFileTarget.value = '';
     }
 
     _loadPdfJs() {
         return new Promise((resolve, reject) => {
-            if (window.pdfjsLib) {
-                resolve(window.pdfjsLib);
-                return;
-            }
+            if (window.pdfjsLib) { resolve(window.pdfjsLib); return; }
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
             script.onload = () => {
@@ -707,18 +544,32 @@ export default class extends Controller {
         });
     }
 
+    // ── Preview PDF ──────────────────────────────────────────────
+
+    previewPdf() {
+        if (this._isLegacyMode && this.hasLegacyTextareaTarget && this.hasTrescHtmlTarget)
+            this.trescHtmlTarget.value = this.legacyTextareaTarget.value;
+
+        const html = this.trescHtmlTarget.value;
+        if (!html.trim()) { alert('Treść HTML jest pusta.'); return; }
+
+        const url = this.szablonIdValue ? this.previewUrlValue : this.previewNewUrlValue;
+        const form = document.createElement('form');
+        form.method = 'POST'; form.action = url; form.target = '_blank';
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'tresc_html'; input.value = html;
+        form.appendChild(input);
+        document.body.appendChild(form); form.submit(); form.remove();
+    }
+
     // ── Sync & Export ────────────────────────────────────────────
 
     _syncState() {
         const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
 
-        // Save canvas JSON for re-editing
         if (this.hasCanvasJsonTarget) {
-            const json = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder']));
-            this.canvasJsonTarget.value = json;
+            this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder']));
         }
-
-        // Only overwrite trescHtml if canvas has real objects
         if (objects.length > 0 && this.hasTrescHtmlTarget) {
             this.trescHtmlTarget.value = this._exportToHtml();
         }
@@ -726,53 +577,34 @@ export default class extends Controller {
 
     _exportToHtml() {
         const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
-        let bodyParts = [];
+        let parts = [];
 
         objects.forEach(obj => {
             const left = ((obj.left || 0) * PX_TO_PT).toFixed(1);
             const top = ((obj.top || 0) * PX_TO_PT).toFixed(1);
 
             if (obj.type === 'textbox') {
-                const scaleX = obj.scaleX || 1;
-                const scaleY = obj.scaleY || 1;
-                const w = ((obj.width || 200) * scaleX * PX_TO_PT).toFixed(1);
-                const fontSize = ((obj.fontSize || 12) * scaleY * PX_TO_PT).toFixed(1);
+                const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+                const w = ((obj.width || 200) * sx * PX_TO_PT).toFixed(1);
+                const fs = ((obj.fontSize || 12) * sy * PX_TO_PT).toFixed(1);
                 const weight = obj.fontWeight === 'bold' ? 'font-weight:bold;' : '';
                 const style = obj.fontStyle === 'italic' ? 'font-style:italic;' : '';
                 const align = obj.textAlign && obj.textAlign !== 'left' ? `text-align:${obj.textAlign};` : '';
                 const color = obj.fill && obj.fill !== '#000000' ? `color:${obj.fill};` : '';
-                const text = this._escapeHtml(obj.text || '');
-                // Convert newlines to <br>
-                const htmlText = text.replace(/\n/g, '<br>');
-
-                bodyParts.push(
-                    `<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;` +
-                    `font-size:${fontSize}pt;font-family:'DejaVu Sans';${weight}${style}${align}${color}">${htmlText}</div>`
-                );
+                const htmlText = this._escapeHtml(obj.text || '').replace(/\n/g, '<br>');
+                parts.push(`<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;font-size:${fs}pt;font-family:'DejaVu Sans';${weight}${style}${align}${color}">${htmlText}</div>`);
             } else if (obj.type === 'line') {
-                const x1 = (obj.x1 || 0) + (obj.left || 0);
-                const x2 = (obj.x2 || 0) + (obj.left || 0);
+                const x1 = (obj.x1 || 0) + (obj.left || 0), x2 = (obj.x2 || 0) + (obj.left || 0);
                 const lineW = (Math.abs(x2 - x1) * (obj.scaleX || 1) * PX_TO_PT).toFixed(1);
-                const strokeW = ((obj.strokeWidth || 1) * PX_TO_PT).toFixed(1);
-                const strokeColor = obj.stroke || '#000000';
-
-                bodyParts.push(
-                    `<div style="position:absolute;left:${left}pt;top:${top}pt;width:${lineW}pt;` +
-                    `border-bottom:${strokeW}pt solid ${strokeColor};"></div>`
-                );
+                const sw = ((obj.strokeWidth || 1) * PX_TO_PT).toFixed(1);
+                parts.push(`<div style="position:absolute;left:${left}pt;top:${top}pt;width:${lineW}pt;border-bottom:${sw}pt solid ${obj.stroke || '#000000'};"></div>`);
             } else if (obj.type === 'rect' && !obj._isPageBorder) {
-                const scaleX = obj.scaleX || 1;
-                const scaleY = obj.scaleY || 1;
-                const w = ((obj.width || 100) * scaleX * PX_TO_PT).toFixed(1);
-                const h = ((obj.height || 50) * scaleY * PX_TO_PT).toFixed(1);
-                const strokeW = ((obj.strokeWidth || 1) * PX_TO_PT).toFixed(1);
-                const strokeColor = obj.stroke || '#000000';
-                const fillColor = obj.fill && obj.fill !== 'transparent' ? `background:${obj.fill};` : '';
-
-                bodyParts.push(
-                    `<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;` +
-                    `border:${strokeW}pt solid ${strokeColor};${fillColor}"></div>`
-                );
+                const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+                const w = ((obj.width || 100) * sx * PX_TO_PT).toFixed(1);
+                const h = ((obj.height || 50) * sy * PX_TO_PT).toFixed(1);
+                const sw = ((obj.strokeWidth || 1) * PX_TO_PT).toFixed(1);
+                const fill = obj.fill && obj.fill !== 'transparent' ? `background:${obj.fill};` : '';
+                parts.push(`<div style="position:absolute;left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;border:${sw}pt solid ${obj.stroke || '#000000'};${fill}"></div>`);
             }
         });
 
@@ -786,7 +618,7 @@ body { margin: 0; padding: 0; font-family: 'DejaVu Sans', sans-serif; position: 
 </style>
 </head>
 <body>
-${bodyParts.join('\n')}
+${parts.join('\n')}
 </body>
 </html>`;
     }
