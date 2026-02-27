@@ -32,6 +32,10 @@ export default class extends Controller {
         'legacyMode',
         'canvasMode',
         'legacyTextarea',
+        'pdfFile',
+        'bgOpacity',
+        'bgOpacityValue',
+        'bgControls',
     ];
 
     connect() {
@@ -530,6 +534,105 @@ export default class extends Controller {
         document.body.appendChild(form);
         form.submit();
         form.remove();
+    }
+
+    // ── PDF background (wzór) ────────────────────────────────────
+
+    async loadPdfBackground() {
+        if (!this.hasPdfFileTarget) return;
+        const file = this.pdfFileTarget.files[0];
+        if (!file) return;
+
+        // Lazy-load PDF.js z CDN
+        const pdfjsLib = await this._loadPdfJs();
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+
+            // Skaluj stronę PDF do wymiarów kanwy A4
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            const scale = CANVAS_W / unscaledViewport.width;
+            const viewport = page.getViewport({ scale });
+
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = CANVAS_W;
+            tmpCanvas.height = CANVAS_H;
+            const ctx = tmpCanvas.getContext('2d');
+
+            // Białe tło
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const dataUrl = tmpCanvas.toDataURL('image/png');
+            await this._setPdfBackground(dataUrl);
+
+            // Pokaż kontrolki tła
+            if (this.hasBgControlsTarget) {
+                this.bgControlsTarget.classList.remove('d-none');
+            }
+        } catch (err) {
+            console.error('PDF load error:', err);
+            alert('Nie udało się wczytać pliku PDF: ' + err.message);
+        }
+    }
+
+    async _setPdfBackground(dataUrl) {
+        const opacity = this.hasBgOpacityTarget
+            ? parseInt(this.bgOpacityTarget.value, 10) / 100
+            : 0.3;
+
+        const img = await fabric.FabricImage.fromURL(dataUrl);
+        img.set({
+            scaleX: CANVAS_W / img.width,
+            scaleY: CANVAS_H / img.height,
+            opacity: opacity,
+        });
+        this._fc.backgroundImage = img;
+        this._fc.renderAll();
+    }
+
+    updateBgOpacity() {
+        if (!this._fc || !this._fc.backgroundImage) return;
+        const opacity = parseInt(this.bgOpacityTarget.value, 10) / 100;
+        this._fc.backgroundImage.set('opacity', opacity);
+        if (this.hasBgOpacityValueTarget) {
+            this.bgOpacityValueTarget.textContent = this.bgOpacityTarget.value + '%';
+        }
+        this._fc.renderAll();
+    }
+
+    removePdfBackground() {
+        if (!this._fc) return;
+        this._fc.backgroundImage = null;
+        this._fc.renderAll();
+        if (this.hasBgControlsTarget) {
+            this.bgControlsTarget.classList.add('d-none');
+        }
+        if (this.hasPdfFileTarget) {
+            this.pdfFileTarget.value = '';
+        }
+    }
+
+    _loadPdfJs() {
+        return new Promise((resolve, reject) => {
+            if (window.pdfjsLib) {
+                resolve(window.pdfjsLib);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.onload = () => {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                resolve(window.pdfjsLib);
+            };
+            script.onerror = () => reject(new Error('Nie udało się załadować PDF.js'));
+            document.head.appendChild(script);
+        });
     }
 
     // ── Sync & Export ────────────────────────────────────────────

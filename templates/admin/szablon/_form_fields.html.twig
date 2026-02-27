@@ -165,6 +165,34 @@
             </div>
         </div>
 
+        {# ── Wzór z PDF ── #}
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <label class="form-label mb-0 small fw-bold">
+                        <i class="ti ti-file-type-pdf me-1"></i>Wzór z PDF:
+                    </label>
+                    <input type="file" class="form-control form-control-sm" accept=".pdf,application/pdf"
+                           data-szablon-editor-target="pdfFile"
+                           data-action="change->szablon-editor#loadPdfBackground"
+                           style="max-width: 280px;">
+
+                    <div class="d-none d-flex align-items-center gap-2" data-szablon-editor-target="bgControls">
+                        <label class="form-label mb-0 small">Przezroczystość:</label>
+                        <input type="range" class="form-range" min="5" max="100" value="30"
+                               data-szablon-editor-target="bgOpacity"
+                               data-action="input->szablon-editor#updateBgOpacity"
+                               style="width: 120px;">
+                        <span class="small text-muted" data-szablon-editor-target="bgOpacityValue">30%</span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </div>
+                </div>
+                <small class="form-hint">Wczytaj PDF jako podkład — zaprojektuj szablon na jego podstawie. Tło nie jest zapisywane.</small>
+            </div>
+        </div>
+
         {# ── Canvas + Properties panel ── #}
         <div class="row mb-3">
             <div class="col">
