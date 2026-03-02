@@ -245,12 +245,21 @@
     });
 })();
 
-var detailModal = null;
-function showDetail(deptId, dzien) {
-    if (!detailModal) {
-        detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+var detailModalEl = document.getElementById('detailModal');
+function getModal() {
+    // Tabler bundles Bootstrap — access Modal via the global or via tabler's bootstrap
+    var BS = window.bootstrap || (window.tabler && window.tabler.Modal ? { Modal: window.tabler.Modal } : null);
+    if (BS && BS.Modal) {
+        return BS.Modal.getOrCreateInstance(detailModalEl);
     }
+    // Fallback: toggle classes manually
+    return {
+        show: function() { detailModalEl.classList.add('show'); detailModalEl.style.display = 'block'; document.body.classList.add('modal-open'); },
+        hide: function() { detailModalEl.classList.remove('show'); detailModalEl.style.display = 'none'; document.body.classList.remove('modal-open'); }
+    };
+}
 
+function showDetail(deptId, dzien) {
     var title = document.getElementById('detailModalTitle');
     title.textContent = 'Osoby na urlopie — ' + dzien + '.{{ '%02d'|format(miesiac) }}.{{ rok }}' + (deptId === 0 ? ' (cala firma)' : '');
 
@@ -264,7 +273,7 @@ function showDetail(deptId, dzien) {
     table.style.display = 'none';
     loading.style.display = 'block';
 
-    detailModal.show();
+    getModal().show();
 
     var url = '{{ path('planer_admin_urlopy_firma_detail', {rok: rok, miesiac: miesiac}) }}' + '?dzien=' + dzien + '&dept=' + deptId;
     fetch(url)
