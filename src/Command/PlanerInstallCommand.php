@@ -90,6 +90,14 @@ class PlanerInstallCommand extends Command
                 'trybDostepu' => 'wszyscy',
                 'dozwoloneRole' => [],
             ],
+            [
+                'kod' => 'urlopy_firma',
+                'nazwa' => 'Urlopy firma',
+                'opis' => 'Miesięczny widok urlopów w całej firmie (heat-map)',
+                'ikona' => 'calendar-stats',
+                'trybDostepu' => 'role',
+                'dozwoloneRole' => ['ROLE_ADMIN'],
+            ],
         ];
 
         $count = 0;

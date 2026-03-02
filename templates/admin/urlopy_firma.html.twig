@@ -1,0 +1,302 @@
+{% extends '@Planer/admin/_layout.html.twig' %}
+
+{% block panel_title %}Urlopy firma{% endblock %}
+{% block panel_heading %}Urlopy w firmie — {{ miesiacNazwa }} {{ rok }}{% endblock %}
+
+{% block panel_actions %}
+    <a href="{{ path('planer_admin_urlopy') }}" class="btn btn-sm btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 12a8 8 0 0 0 8 -8h-16a8 8 0 0 0 8 8"/>
+            <path d="M12 12v9"/>
+            <path d="M12 12l-4.5 4.5"/>
+        </svg>
+        Widok roczny wg dzialu
+    </a>
+{% endblock %}
+
+{% block panel_content %}
+<style>
+    .uf-wrap { overflow-x: auto; }
+    .uf-table {
+        font-size: 0.72rem; table-layout: fixed; width: 100%; border-collapse: collapse;
+    }
+    .uf-table th,
+    .uf-table td { text-align: center; vertical-align: middle; padding: 2px 0; border: 1px solid #dee2e6; }
+    .uf-table .col-dept {
+        text-align: left; width: 150px; min-width: 150px; max-width: 150px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        position: sticky; left: 0; background: #fff; z-index: 2;
+        padding-left: 6px !important; font-size: 0.72rem; font-weight: 600;
+    }
+    .uf-table thead th.col-dept { z-index: 3; }
+    .uf-table .col-sum {
+        width: 36px; min-width: 36px; max-width: 36px;
+        background-color: #e8f4f8 !important; border-left: 2px solid #206bc4;
+        font-weight: 700; color: #206bc4;
+    }
+    .uf-table .weekend { background-color: #f4f6fa !important; }
+    .uf-table .holiday { background-color: #fce4e4 !important; }
+    .uf-table .holiday-header .day-num { color: #d63939; }
+    .uf-table .holiday-header .day-name { color: #d63939; }
+    .day-num { font-size: 0.68rem; font-weight: 600; line-height: 1.1; }
+    .day-name { font-size: 0.55rem; color: #999; line-height: 1.1; }
+    .uf-cell { line-height: 28px; height: 28px; font-weight: 600; font-size: 0.72rem; }
+    .uf-cell.clickable { cursor: pointer; }
+    .uf-cell.clickable:hover { opacity: 0.75; }
+    .uf-lvl-0 { color: #bbb; }
+    .uf-lvl-1 { background-color: #fefce8 !important; }
+    .uf-lvl-2 { background-color: #fff3cd !important; }
+    .uf-lvl-3 { background-color: #ffe0b2 !important; }
+    .uf-lvl-4 { background-color: #ffccbc !important; }
+    .uf-razem { font-weight: 700; background-color: #f1f5f9 !important; }
+    .uf-razem .col-dept { background-color: #f1f5f9 !important; font-weight: 700; }
+
+    /* month picker */
+    .month-picker-trigger:hover { background: #f1f5f9; }
+    .month-picker-dropdown {
+        display: none; position: absolute; z-index: 200; top: 100%; left: 50%; transform: translateX(-50%);
+        background: #fff; border: 1px solid #d9dbde; border-radius: 6px;
+        box-shadow: 0 6px 16px rgba(0,0,0,.15); padding: 8px; width: 210px; margin-top: 4px;
+    }
+    .month-picker.open .month-picker-dropdown { display: block; }
+    .mpd-year-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .mpd-year-nav { text-decoration: none; color: #206bc4; font-weight: 700; font-size: 1rem; padding: 0 6px; line-height: 1; }
+    .mpd-year-nav:hover { color: #1a56a0; }
+    .mpd-year-label { font-size: .85rem; }
+    .mpd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    .mpd-item {
+        text-align: center; padding: 5px 0; border-radius: 4px; font-size: .78rem;
+        text-decoration: none; color: #333; font-weight: 500;
+    }
+    .mpd-item:hover { background: #e8f0fe; color: #206bc4; }
+    .mpd-item.active { background: #206bc4; color: #fff; font-weight: 700; }
+</style>
+
+{# Month navigation #}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ path('planer_admin_urlopy_firma', {rok: prevRok, miesiac: prevMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&laquo;</a>
+        <div class="month-picker" style="position:relative;">
+            <span class="fw-bold month-picker-trigger" style="cursor:pointer; user-select:none; padding:2px 8px; border-radius:4px;">
+                {{ miesiacNazwa }} {{ rok }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px; opacity:.5;">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </span>
+            <div class="month-picker-dropdown">
+                <div class="mpd-year-row">
+                    <a href="#" class="mpd-year-nav" data-dir="-1">&laquo;</a>
+                    <span class="mpd-year-label fw-bold">{{ rok }}</span>
+                    <a href="#" class="mpd-year-nav" data-dir="1">&raquo;</a>
+                </div>
+                <div class="mpd-grid">
+                    {% set nazwyMiesiecy = {1:'Sty',2:'Lut',3:'Mar',4:'Kwi',5:'Maj',6:'Cze',7:'Lip',8:'Sie',9:'Wrz',10:'Paz',11:'Lis',12:'Gru'} %}
+                    {% for m, nazwa in nazwyMiesiecy %}
+                        <a href="{{ path('planer_admin_urlopy_firma', {rok: rok, miesiac: m}) }}"
+                           class="mpd-item{{ m == miesiac ? ' active' : '' }}" data-month="{{ m }}">{{ nazwa }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <a href="{{ path('planer_admin_urlopy_firma', {rok: nextRok, miesiac: nextMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&raquo;</a>
+    </div>
+    <div class="d-flex align-items-center gap-3" style="font-size: 0.75rem;">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;" class="uf-lvl-1"></span> 1-2</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;" class="uf-lvl-2"></span> 3-5</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;" class="uf-lvl-3"></span> 6-9</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;" class="uf-lvl-4"></span> 10+</span>
+    </div>
+</div>
+
+{# Heat-map table #}
+<div class="uf-wrap">
+    <table class="uf-table">
+        <thead>
+            <tr>
+                <th class="col-dept">Dzial</th>
+                {% for d in dni %}
+                    <th class="{% if d.swieto %}holiday holiday-header{% elseif d.weekend %}weekend{% endif %}"
+                        {% if d.swietoNazwa %}title="{{ d.swietoNazwa }}"{% endif %}>
+                        <div class="day-num">{{ d.numer }}</div>
+                        <div class="day-name">{{ d.dzienTygodnia }}</div>
+                    </th>
+                {% endfor %}
+                <th class="col-sum">&Sigma;</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dept in departamenty %}
+                <tr>
+                    <td class="col-dept" title="{{ dept.nazwa }}">{{ dept.nazwa }}</td>
+                    {% set rowSum = 0 %}
+                    {% for d in dni %}
+                        {% set count = grid[dept.id][d.numer] ?? 0 %}
+                        {% set rowSum = rowSum + count %}
+                        {% set lvl = count == 0 ? 'uf-lvl-0' : (count <= 2 ? 'uf-lvl-1' : (count <= 5 ? 'uf-lvl-2' : (count <= 9 ? 'uf-lvl-3' : 'uf-lvl-4'))) %}
+                        <td class="{% if d.swieto %}holiday{% elseif d.weekend %}weekend{% endif %}">
+                            <div class="uf-cell {{ lvl }}{{ count > 0 ? ' clickable' : '' }}"
+                                 {% if count > 0 %}onclick="showDetail({{ dept.id }}, {{ d.numer }})"{% endif %}>
+                                {{ count > 0 ? count : '-' }}
+                            </div>
+                        </td>
+                    {% endfor %}
+                    <td class="col-sum">{{ rowSum > 0 ? rowSum : '-' }}</td>
+                </tr>
+            {% endfor %}
+            {# RAZEM row #}
+            <tr class="uf-razem">
+                <td class="col-dept">RAZEM</td>
+                {% set grandSum = 0 %}
+                {% for d in dni %}
+                    {% set count = totals[d.numer] ?? 0 %}
+                    {% set grandSum = grandSum + count %}
+                    {% set lvl = count == 0 ? 'uf-lvl-0' : (count <= 2 ? 'uf-lvl-1' : (count <= 5 ? 'uf-lvl-2' : (count <= 9 ? 'uf-lvl-3' : 'uf-lvl-4'))) %}
+                    <td class="{% if d.swieto %}holiday{% elseif d.weekend %}weekend{% endif %}">
+                        <div class="uf-cell {{ lvl }}{{ count > 0 ? ' clickable' : '' }}"
+                             {% if count > 0 %}onclick="showDetail(0, {{ d.numer }})"{% endif %}>
+                            {{ count > 0 ? count : '-' }}
+                        </div>
+                    </td>
+                {% endfor %}
+                <td class="col-sum">{{ grandSum > 0 ? grandSum : '-' }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{# Detail modal #}
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalTitle">Osoby na urlopie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-striped mb-0" id="detailTable">
+                    <thead>
+                        <tr>
+                            <th>Imie i nazwisko</th>
+                            <th>Dzial</th>
+                            <th>Okres</th>
+                            <th>Rodzaj urlopu</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailBody"></tbody>
+                </table>
+                <div id="detailEmpty" class="text-center text-muted py-3" style="display:none;">Brak osob na urlopie.</div>
+                <div id="detailLoading" class="text-center py-3" style="display:none;">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div> Ladowanie...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Month picker
+    var picker = document.querySelector('.month-picker');
+    if (!picker || picker.dataset.bound) return;
+    picker.dataset.bound = '1';
+
+    var trigger = picker.querySelector('.month-picker-trigger');
+    var yearLabel = picker.querySelector('.mpd-year-label');
+    var items = picker.querySelectorAll('.mpd-item');
+    var currentYear = {{ rok }};
+    var displayYear = currentYear;
+    var baseUrl = '{{ path('planer_admin_urlopy_firma', {rok: '__YEAR__', miesiac: '__MONTH__'}) }}';
+
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        picker.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.month-picker')) {
+            picker.classList.remove('open');
+        }
+    });
+
+    function updateLinks() {
+        yearLabel.textContent = displayYear;
+        items.forEach(function(a) {
+            var m = a.dataset.month;
+            a.href = baseUrl.replace('__YEAR__', displayYear).replace('__MONTH__', m);
+            if (displayYear == currentYear) {
+                a.classList.toggle('active', m == '{{ miesiac }}');
+            } else {
+                a.classList.remove('active');
+            }
+        });
+    }
+
+    picker.querySelectorAll('.mpd-year-nav').forEach(function(nav) {
+        nav.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            displayYear += parseInt(this.dataset.dir);
+            updateLinks();
+        });
+    });
+})();
+
+var detailModal = null;
+function showDetail(deptId, dzien) {
+    if (!detailModal) {
+        detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+    }
+
+    var title = document.getElementById('detailModalTitle');
+    title.textContent = 'Osoby na urlopie — ' + dzien + '.{{ '%02d'|format(miesiac) }}.{{ rok }}' + (deptId === 0 ? ' (cala firma)' : '');
+
+    var body = document.getElementById('detailBody');
+    var empty = document.getElementById('detailEmpty');
+    var loading = document.getElementById('detailLoading');
+    var table = document.getElementById('detailTable');
+
+    body.innerHTML = '';
+    empty.style.display = 'none';
+    table.style.display = 'none';
+    loading.style.display = 'block';
+
+    detailModal.show();
+
+    var url = '{{ path('planer_admin_urlopy_firma_detail', {rok: rok, miesiac: miesiac}) }}' + '?dzien=' + dzien + '&dept=' + deptId;
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.style.display = 'none';
+            if (!data.people || data.people.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            table.style.display = 'table';
+            data.people.forEach(function(p) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + esc(p.name) + '</td>'
+                    + '<td>' + esc(p.departament) + '</td>'
+                    + '<td>' + esc(p.dataOd) + ' — ' + esc(p.dataDo) + '</td>'
+                    + '<td>' + esc(p.rodzajUrlopu) + '</td>'
+                    + '<td>' + esc(p.status) + '</td>';
+                body.appendChild(tr);
+            });
+        })
+        .catch(function() {
+            loading.style.display = 'none';
+            empty.textContent = 'Blad ladowania danych.';
+            empty.style.display = 'block';
+        });
+}
+
+function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+</script>
+{% endblock %}

@@ -94,6 +94,28 @@ class PodanieUrlopoweRepository extends ServiceEntityRepository
     }
 
     /**
+     * Returns all podania with active statuses overlapping a given month (all departments).
+     *
+     * @param string[] $activeStatuses
+     * @return PodanieUrlopowe[]
+     */
+    public function findActiveForMonth(int $rok, int $miesiac, array $activeStatuses): array
+    {
+        $monthStart = new \DateTime(sprintf('%04d-%02d-01', $rok, $miesiac));
+        $monthEnd = (clone $monthStart)->modify('last day of this month');
+
+        return $this->createQueryBuilder('p')
+            ->where('p.dataOd <= :monthEnd')
+            ->andWhere('p.dataDo >= :monthStart')
+            ->andWhere('p.status IN (:statuses)')
+            ->setParameter('monthStart', $monthStart)
+            ->setParameter('monthEnd', $monthEnd)
+            ->setParameter('statuses', $activeStatuses)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return string[]
      */
     public function findDistinctStatuses(): array
