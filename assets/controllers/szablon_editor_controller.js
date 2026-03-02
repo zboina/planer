@@ -73,6 +73,7 @@ export default class extends Controller {
 
         this._gridEnabled = false;
         this._gridSize = 10;
+        this._syncing = false;
 
         // Draw grid via after:render (no Fabric objects — no serialization issues)
         this._fc.on('after:render', () => this._renderGrid());
@@ -740,13 +741,18 @@ export default class extends Controller {
     // ── Sync & Export ────────────────────────────────────────────
 
     _syncState() {
-        const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
-
-        if (this.hasCanvasJsonTarget) {
-            this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder', '_isSignatureArea']));
-        }
-        if (objects.length > 0 && this.hasTrescHtmlTarget) {
-            this.trescHtmlTarget.value = this._exportToHtml();
+        if (this._syncing) return;
+        this._syncing = true;
+        try {
+            const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
+            if (this.hasCanvasJsonTarget) {
+                this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder', '_isSignatureArea']));
+            }
+            if (objects.length > 0 && this.hasTrescHtmlTarget) {
+                this.trescHtmlTarget.value = this._exportToHtml();
+            }
+        } finally {
+            this._syncing = false;
         }
     }
 
