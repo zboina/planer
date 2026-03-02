@@ -245,6 +245,7 @@ class GrafikController extends AbstractController
             'canAutoPlan' => $modulChecker->hasAccess('auto_planer'),
             'canPodania' => $modulChecker->hasAccess('moje_podania'),
             'canDrukuj' => $modulChecker->hasAccess('drukuj_grafik'),
+            'canUrlopyFirma' => $modulChecker->hasAccess('urlopy_firma'),
             'glownyGrid' => $glownyGrid,
             'isObserwowany' => $isObserwowany,
             'obserwowaneIds' => $obserwowaneIds,
