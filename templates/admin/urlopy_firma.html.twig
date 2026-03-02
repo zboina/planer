@@ -209,7 +209,7 @@
     var items = picker.querySelectorAll('.mpd-item');
     var currentYear = {{ rok }};
     var displayYear = currentYear;
-    var baseUrl = '{{ path('planer_admin_urlopy_firma', {rok: '__YEAR__', miesiac: '__MONTH__'}) }}';
+    var basePrefix = '{{ path('planer_admin_urlopy_firma') }}';
 
     trigger.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -226,7 +226,7 @@
         yearLabel.textContent = displayYear;
         items.forEach(function(a) {
             var m = a.dataset.month;
-            a.href = baseUrl.replace('__YEAR__', displayYear).replace('__MONTH__', m);
+            a.href = basePrefix + '/' + displayYear + '/' + m;
             if (displayYear == currentYear) {
                 a.classList.toggle('active', m == '{{ miesiac }}');
             } else {
