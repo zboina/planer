@@ -59,8 +59,23 @@ export default class extends Controller {
             backgroundColor: '#ffffff', selection: true,
         });
 
+        // Bigger handles for easier grabbing
+        fabric.FabricObject.prototype.set({
+            cornerSize: 10,
+            cornerStyle: 'circle',
+            cornerColor: '#1971c2',
+            cornerStrokeColor: '#1864ab',
+            transparentCorners: false,
+            borderColor: '#1971c2',
+            borderScaleFactor: 1.5,
+            padding: 4,
+        });
+
         this._gridEnabled = false;
         this._gridSize = 10;
+
+        // Draw grid via after:render (no Fabric objects — no serialization issues)
+        this._fc.on('after:render', () => this._renderGrid());
 
         const border = new fabric.Rect({
             left: 0, top: 0, width: CANVAS_W, height: CANVAS_H,
@@ -100,6 +115,7 @@ export default class extends Controller {
 
         this._fc.on('object:moving', (e) => this._snapObject(e.target));
         this._fc.on('object:scaling', (e) => this._snapScaling(e.target));
+        this._fc.on('object:modified', (e) => this._showProps(e.target));
     }
 
     _bindKeyboard() {
@@ -163,8 +179,9 @@ export default class extends Controller {
 
     addText() {
         const t = new fabric.Textbox('Wpisz tekst...', {
-            left: 50, top: 50, width: 300, fontSize: 12,
+            left: 50, top: 50, width: 500, fontSize: 14,
             fontFamily: 'DejaVu Sans', fill: '#000000', editable: true,
+            minWidth: 40,
         });
         this._fc.add(t);
         this._fc.setActiveObject(t);
@@ -176,8 +193,9 @@ export default class extends Controller {
         const val = this.placeholderSelectTarget.value;
         if (!val) return;
         const t = new fabric.Textbox(val, {
-            left: 50, top: 50, width: 350, fontSize: 12,
+            left: 50, top: 50, width: 400, fontSize: 14,
             fontFamily: 'DejaVu Sans', fill: '#1971c2', editable: true,
+            minWidth: 40,
         });
         t.isPlaceholder = true;
         this._fc.add(t);
@@ -401,7 +419,7 @@ export default class extends Controller {
             this.gridToggleTarget.classList.toggle('btn-primary', this._gridEnabled);
             this.gridToggleTarget.classList.toggle('btn-outline-secondary', !this._gridEnabled);
         }
-        this._drawGrid();
+        this._fc.renderAll();
     }
 
     updateGridSize() {
@@ -409,51 +427,46 @@ export default class extends Controller {
         const size = parseInt(this.gridSizeTarget.value, 10);
         if (size >= 5 && size <= 100) {
             this._gridSize = size;
-            if (this._gridEnabled) this._drawGrid();
+            if (this._gridEnabled) this._fc.renderAll();
         }
     }
 
-    _drawGrid() {
-        // Remove old grid lines
-        this._fc.getObjects().forEach(obj => {
-            if (obj._isGridLine) this._fc.remove(obj);
-        });
-
-        if (!this._gridEnabled) { this._fc.renderAll(); return; }
-
+    _renderGrid() {
+        if (!this._gridEnabled) return;
+        const ctx = this._fc.getContext();
         const g = this._gridSize;
-        const strokeColor = '#d0d0d0';
-        const strokeMajor = '#b0b0b0';
 
+        ctx.save();
+        ctx.strokeStyle = '#c8c8c8';
+        ctx.lineWidth = 0.5;
+
+        ctx.beginPath();
         for (let x = g; x < CANVAS_W; x += g) {
-            const isMajor = x % (g * 5) === 0;
-            const line = new fabric.Line([x, 0, x, CANVAS_H], {
-                stroke: isMajor ? strokeMajor : strokeColor,
-                strokeWidth: isMajor ? 0.5 : 0.3,
-                selectable: false, evented: false, excludeFromExport: true,
-            });
-            line._isGridLine = true;
-            this._fc.add(line);
-            this._fc.sendObjectToBack(line);
+            if (x % (g * 5) === 0) continue; // skip majors (drawn separately)
+            ctx.moveTo(x + 0.5, 0);
+            ctx.lineTo(x + 0.5, CANVAS_H);
         }
         for (let y = g; y < CANVAS_H; y += g) {
-            const isMajor = y % (g * 5) === 0;
-            const line = new fabric.Line([0, y, CANVAS_W, y], {
-                stroke: isMajor ? strokeMajor : strokeColor,
-                strokeWidth: isMajor ? 0.5 : 0.3,
-                selectable: false, evented: false, excludeFromExport: true,
-            });
-            line._isGridLine = true;
-            this._fc.add(line);
-            this._fc.sendObjectToBack(line);
+            if (y % (g * 5) === 0) continue;
+            ctx.moveTo(0, y + 0.5);
+            ctx.lineTo(CANVAS_W, y + 0.5);
         }
+        ctx.stroke();
 
-        // Keep page border behind grid
-        this._fc.getObjects().forEach(obj => {
-            if (obj._isPageBorder) this._fc.sendObjectToBack(obj);
-        });
-
-        this._fc.renderAll();
+        // Major lines (every 5th)
+        ctx.strokeStyle = '#a0a0a0';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        for (let x = g * 5; x < CANVAS_W; x += g * 5) {
+            ctx.moveTo(x + 0.5, 0);
+            ctx.lineTo(x + 0.5, CANVAS_H);
+        }
+        for (let y = g * 5; y < CANVAS_H; y += g * 5) {
+            ctx.moveTo(0, y + 0.5);
+            ctx.lineTo(CANVAS_W, y + 0.5);
+        }
+        ctx.stroke();
+        ctx.restore();
     }
 
     _snapObject(obj) {
@@ -727,14 +740,10 @@ export default class extends Controller {
     // ── Sync & Export ────────────────────────────────────────────
 
     _syncState() {
-        const objects = this._fc.getObjects().filter(o => !o._isPageBorder && !o._isGridLine);
+        const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
 
         if (this.hasCanvasJsonTarget) {
-            // Serialize without grid lines — temporarily remove them, serialize, re-add
-            const gridLines = this._fc.getObjects().filter(o => o._isGridLine);
-            gridLines.forEach(o => this._fc.remove(o));
             this.canvasJsonTarget.value = JSON.stringify(this._fc.toJSON(['isPlaceholder', '_isPageBorder', '_isSignatureArea']));
-            gridLines.forEach(o => { this._fc.add(o); this._fc.sendObjectToBack(o); });
         }
         if (objects.length > 0 && this.hasTrescHtmlTarget) {
             this.trescHtmlTarget.value = this._exportToHtml();
@@ -742,7 +751,7 @@ export default class extends Controller {
     }
 
     _exportToHtml() {
-        const objects = this._fc.getObjects().filter(o => !o._isPageBorder && !o._isGridLine);
+        const objects = this._fc.getObjects().filter(o => !o._isPageBorder);
         let parts = [];
 
         objects.forEach(obj => {

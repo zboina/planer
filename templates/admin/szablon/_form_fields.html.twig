@@ -258,12 +258,13 @@
                                data-szablon-editor-target="pdfFile"
                                data-action="change->szablon-editor#loadPdfBackground">
                         <div class="d-none" data-szablon-editor-target="bgControls">
+                            <label class="form-label mb-0" style="font-size:0.6rem;">Przezroczystość tła:</label>
                             <div class="d-flex align-items-center gap-1">
                                 <input type="range" class="form-range flex-grow-1" min="5" max="100" value="30" style="height:20px;"
                                        data-szablon-editor-target="bgOpacity"
                                        data-action="input->szablon-editor#updateBgOpacity">
-                                <span class="text-muted" style="font-size:0.65rem; min-width:28px;" data-szablon-editor-target="bgOpacityValue">30%</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" data-action="szablon-editor#removePdfBackground" title="Usuń tło">
+                                <span class="text-muted fw-bold" style="font-size:0.7rem; min-width:32px;" data-szablon-editor-target="bgOpacityValue">30%</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" data-action="szablon-editor#removePdfBackground" title="Usuń tło PDF">
                                     <i class="ti ti-x" style="font-size:0.75rem;"></i>
                                 </button>
                             </div>
