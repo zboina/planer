@@ -1,22 +1,12 @@
-{% extends '@Planer/admin/_layout.html.twig' %}
+{% extends planer_base_template %}
 
-{% block panel_title %}Urlopy firma{% endblock %}
-{% block panel_heading %}Urlopy w firmie — {{ miesiacNazwa }} {{ rok }}{% endblock %}
+{% block title %}Urlopy firma{% endblock %}
+{% block page_pretitle %}Planer{% endblock %}
+{% block page_title %}Urlopy w firmie — {{ miesiacNazwa }} {{ rok }}{% endblock %}
 
-{% block panel_actions %}
-    <a href="{{ path('planer_admin_urlopy') }}" class="btn btn-sm btn-outline-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
-             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M12 12a8 8 0 0 0 8 -8h-16a8 8 0 0 0 8 8"/>
-            <path d="M12 12v9"/>
-            <path d="M12 12l-4.5 4.5"/>
-        </svg>
-        Widok roczny wg dzialu
-    </a>
-{% endblock %}
-
-{% block panel_content %}
+{% block body %}
+<div class="card">
+    <div class="card-body">
 <style>
     .uf-wrap { overflow-x: auto; }
     .uf-table {
@@ -77,7 +67,7 @@
 {# Month navigation #}
 <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="d-flex align-items-center gap-2">
-        <a href="{{ path('planer_admin_urlopy_firma', {rok: prevRok, miesiac: prevMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&laquo;</a>
+        <a href="{{ path('planer_urlopy_firma', {rok: prevRok, miesiac: prevMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&laquo;</a>
         <div class="month-picker" style="position:relative;">
             <span class="fw-bold month-picker-trigger" style="cursor:pointer; user-select:none; padding:2px 8px; border-radius:4px;">
                 {{ miesiacNazwa }} {{ rok }}
@@ -95,13 +85,13 @@
                 <div class="mpd-grid">
                     {% set nazwyMiesiecy = {1:'Sty',2:'Lut',3:'Mar',4:'Kwi',5:'Maj',6:'Cze',7:'Lip',8:'Sie',9:'Wrz',10:'Paz',11:'Lis',12:'Gru'} %}
                     {% for m, nazwa in nazwyMiesiecy %}
-                        <a href="{{ path('planer_admin_urlopy_firma', {rok: rok, miesiac: m}) }}"
+                        <a href="{{ path('planer_urlopy_firma', {rok: rok, miesiac: m}) }}"
                            class="mpd-item{{ m == miesiac ? ' active' : '' }}" data-month="{{ m }}">{{ nazwa }}</a>
                     {% endfor %}
                 </div>
             </div>
         </div>
-        <a href="{{ path('planer_admin_urlopy_firma', {rok: nextRok, miesiac: nextMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&raquo;</a>
+        <a href="{{ path('planer_urlopy_firma', {rok: nextRok, miesiac: nextMiesiac}) }}" class="btn btn-sm btn-outline-secondary">&raquo;</a>
     </div>
     <div class="d-flex align-items-center gap-3" style="font-size: 0.75rem;">
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;" class="uf-lvl-1"></span> 1-2</span>
@@ -209,7 +199,7 @@
     var items = picker.querySelectorAll('.mpd-item');
     var currentYear = {{ rok }};
     var displayYear = currentYear;
-    var basePrefix = '{{ path('planer_admin_urlopy_firma') }}';
+    var basePrefix = '{{ path('planer_urlopy_firma') }}';
 
     trigger.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -275,7 +265,7 @@ function showDetail(deptId, dzien) {
 
     getModal().show();
 
-    var url = '{{ path('planer_admin_urlopy_firma_detail', {rok: rok, miesiac: miesiac}) }}' + '?dzien=' + dzien + '&dept=' + deptId;
+    var url = '{{ path('planer_urlopy_firma_detail', {rok: rok, miesiac: miesiac}) }}' + '?dzien=' + dzien + '&dept=' + deptId;
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -308,4 +298,6 @@ function esc(s) {
     return d.innerHTML;
 }
 </script>
+    </div>
+</div>
 {% endblock %}
