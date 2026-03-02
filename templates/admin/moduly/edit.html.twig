@@ -55,11 +55,19 @@
             </div>
 
             <div id="section-role" class="mb-3" style="display:none;">
-                <label class="form-label" for="dozwolone_role">Dozwolone role</label>
-                <input type="text" class="form-control" id="dozwolone_role" name="dozwolone_role"
-                       value="{{ modul.dozwoloneRole|join(', ') }}"
-                       placeholder="np. ROLE_ADMIN, ROLE_EDITOR">
-                <small class="form-hint">Role oddzielone przecinkami</small>
+                <label class="form-label">Dozwolone role</label>
+                {% for r in dostepneRole %}
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" name="dozwolone_role_arr[]"
+                               value="{{ r.role }}" {{ r.role in modul.dozwoloneRole ? 'checked' : '' }}>
+                        <span class="form-check-label">{{ r.label }}</span>
+                    </label>
+                {% endfor %}
+                <div class="mt-2">
+                    <small class="form-hint">Dodatkowa rola (opcjonalnie):</small>
+                    <input type="text" class="form-control form-control-sm mt-1" id="dozwolone_role_extra" name="dozwolone_role_extra"
+                           placeholder="np. ROLE_EDITOR" style="max-width:300px;">
+                </div>
             </div>
 
             <div id="section-users" class="mb-3" style="display:none;">

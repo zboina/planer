@@ -1091,7 +1091,7 @@ class PlanerAdminController extends AbstractController
     }
 
     #[Route('/moduly/{id}/edit', name: 'planer_admin_modul_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function modulEdit(int $id, Request $request, UserDepartamentRepository $udRepo): Response
+    public function modulEdit(int $id, Request $request, UserDepartamentRepository $udRepo, WorkflowKrokRepository $krokRepo): Response
     {
         $modul = $this->em->getRepository(PlanerModul::class)->find($id);
         if (!$modul) {
@@ -1106,7 +1106,15 @@ class PlanerAdminController extends AbstractController
             $modul->setAktywny($request->request->getBoolean('aktywny'));
             $modul->setTrybDostepu($request->request->getString('tryb_dostepu'));
 
-            $role = array_filter(array_map('trim', explode(',', $request->request->getString('dozwolone_role'))));
+            $role = $request->request->all('dozwolone_role_arr');
+            $extra = trim($request->request->getString('dozwolone_role_extra'));
+            if ($extra !== '') {
+                foreach (array_map('trim', explode(',', $extra)) as $r) {
+                    if ($r !== '' && !in_array($r, $role, true)) {
+                        $role[] = $r;
+                    }
+                }
+            }
             $modul->setDozwoloneRole(array_values($role));
 
             $userIds = array_filter(array_map('intval', explode(',', $request->request->getString('dozwoleni_user_ids'))));
@@ -1126,11 +1134,23 @@ class PlanerAdminController extends AbstractController
 
         $users = $udRepo->findAllPlanerUsers();
 
+        // Available roles: Symfony + Planer workflow roles
+        $dostepneRole = [
+            ['role' => 'ROLE_ADMIN', 'label' => 'Administrator (ROLE_ADMIN)'],
+        ];
+        foreach ($krokRepo->findAllOrdered() as $krok) {
+            $dostepneRole[] = [
+                'role' => 'ROLE_PLANER_' . strtoupper($krok->getKey()),
+                'label' => $krok->getLabel() . ' (ROLE_PLANER_' . strtoupper($krok->getKey()) . ')',
+            ];
+        }
+
         return $this->render('@Planer/admin/moduly/edit.html.twig', [
             'active' => 'moduly',
             'modul' => $modul,
             'departamenty' => $departamenty,
             'users' => $users,
+            'dostepneRole' => $dostepneRole,
         ]);
     }
 
