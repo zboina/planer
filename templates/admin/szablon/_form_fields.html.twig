@@ -118,6 +118,26 @@
                         </div>
                     </div>
 
+                    {# — Siatka (grid) — #}
+                    <div class="px-2 py-2 border-bottom">
+                        <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Siatka</div>
+                        <div class="d-flex gap-1 align-items-center mb-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                    data-szablon-editor-target="gridToggle"
+                                    data-action="szablon-editor#toggleGrid" title="Włącz/wyłącz siatkę">
+                                <i class="ti ti-grid-dots" style="font-size:0.85rem;"></i> Siatka
+                            </button>
+                        </div>
+                        <div class="d-flex gap-1 align-items-center">
+                            <label class="form-label mb-0" style="font-size:0.6rem; white-space:nowrap;">Rozmiar:</label>
+                            <input type="number" class="form-control form-control-sm text-center" style="font-size:0.75rem; width:60px;"
+                                   min="5" max="100" value="10"
+                                   data-szablon-editor-target="gridSize"
+                                   data-action="change->szablon-editor#updateGridSize keydown->szablon-editor#preventSubmit">
+                            <span class="text-muted" style="font-size:0.6rem;">px</span>
+                        </div>
+                    </div>
+
                     {# — Placeholdery — #}
                     <div class="px-2 py-2 border-bottom">
                         <div class="fw-bold text-muted mb-1" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px;">Placeholder</div>
