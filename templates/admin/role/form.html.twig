@@ -8,7 +8,7 @@
     <div class="col-lg-8">
         {% if globalKroki is empty %}
             <div class="alert alert-warning">
-                Brak kroków workflow typu <strong>Globalny</strong>. Najpierw dodaj kroki workflow z typem "Globalny" w zakładce
+                Brak kroków workflow. Najpierw dodaj kroki workflow w zakładce
                 <a href="{{ path('planer_admin_workflow') }}">Workflow</a>.
             </div>
         {% else %}
@@ -27,10 +27,10 @@
                     <select name="rola" class="form-select" required>
                         <option value="">-- Wybierz --</option>
                         {% for krok in globalKroki %}
-                            <option value="{{ krok.key }}">{{ krok.label }} ({{ krok.key }})</option>
+                            <option value="{{ krok.key }}">{{ krok.label }} ({{ krok.key }}) — {{ krok.type == 'global' ? 'globalny' : 'per departament' }}</option>
                         {% endfor %}
                     </select>
-                    <small class="form-hint">Wybierz krok workflow, na którym użytkownik będzie mógł akceptować/odrzucać podania.</small>
+                    <small class="form-hint">Wybierz krok workflow, na którym użytkownik będzie mógł akceptować/odrzucać podania. Rola odpowiada <code>ROLE_PLANER_{{ '&lt;KEY&gt;'|upper }}</code>.</small>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Przypisz rolę</button>

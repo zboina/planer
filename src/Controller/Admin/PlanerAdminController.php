@@ -1944,7 +1944,7 @@ class PlanerAdminController extends AbstractController
     #[Route('/role/new', name: 'planer_admin_role_new', methods: ['GET', 'POST'])]
     public function roleNew(Request $request, WorkflowKrokRepository $krokRepo): Response
     {
-        $globalKroki = array_filter($krokRepo->findAllOrdered(), fn(WorkflowKrok $k) => $k->isGlobal());
+        $kroki = $krokRepo->findAllOrdered();
         $users = $this->em->getRepository($this->getParameter('planer.user_class'))->findBy([], ['id' => 'ASC']);
 
         if ($request->isMethod('POST')) {
@@ -1971,7 +1971,7 @@ class PlanerAdminController extends AbstractController
 
         return $this->render('@Planer/admin/role/form.html.twig', [
             'active' => 'role',
-            'globalKroki' => $globalKroki,
+            'globalKroki' => $kroki,
             'users' => $users,
         ]);
     }
